@@ -11,7 +11,7 @@ public class CellomicsPuzzleHelper {
 
 	private static PuzzleHelperGUI helperGUI;
 
-	public static void main(String[] args){
+	public static void main(String[] args) {
 		//JFrame frame = new JFrame("Nuls test");
 		//frame.setContentPane(new PuzzleHelperGUI().basePanel);
 		//frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -19,13 +19,20 @@ public class CellomicsPuzzleHelper {
 		//frame.pack();
 		//frame.setLocationRelativeTo(null);
 
-		try {
-			UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-		} catch (ClassNotFoundException | InstantiationException | UnsupportedLookAndFeelException | IllegalAccessException e) {
-			e.printStackTrace();
-		}
+		SwingUtilities.invokeLater(new Runnable() {
+			@Override
+			public void run() {
+				try {
+					UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+				} catch (ClassNotFoundException | InstantiationException | UnsupportedLookAndFeelException | IllegalAccessException e) {
+					e.printStackTrace();
+				}
 
-		new PuzzleHelperGUI();
-	};
+				new PuzzleHelperGUI();
+			}
+		});
+	}
+
+	;
 
 }
