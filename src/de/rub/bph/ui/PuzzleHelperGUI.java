@@ -5,6 +5,8 @@ import de.rub.bph.ui.component.WellPreviewPanel;
 
 import javax.swing.*;
 import javax.swing.event.ChangeListener;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 
 /**
  * Created by nilfoe on 12/03/2018.
@@ -12,7 +14,7 @@ import javax.swing.event.ChangeListener;
 public class PuzzleHelperGUI extends JFrame {
 	private JButton button1;
 	private JPanel basePanel;
-	private JButton button2;
+	private JButton exportInstructionFileButton;
 	private JSpinner spinner1;
 	private JSpinner spinner2;
 	private JSpinner spinner3;
@@ -21,12 +23,12 @@ public class PuzzleHelperGUI extends JFrame {
 	private JCheckBox flipImagesAlongTheCheckBox;
 	private WellPreviewPanel previewPL;
 	private JLabel imagecountLB;
+	private JButton button2;
+	private JButton button3;
 
 	public PuzzleHelperGUI() {
-		button1.addActionListener(actionEvent -> System.out.println("I am test"));
-
-		spinner1.setModel(new SpinnerNumberModel(1, 1, Integer.MAX_VALUE, 1));
-		spinner2.setModel(new SpinnerNumberModel(1, 1, Integer.MAX_VALUE, 1));
+		spinner1.setModel(new SpinnerNumberModel(10, 1, Integer.MAX_VALUE, 1));
+		spinner2.setModel(new SpinnerNumberModel(10, 1, Integer.MAX_VALUE, 1));
 		spinner3.setModel(new SpinnerNumberModel(1000, 1, Integer.MAX_VALUE, 1));
 		spinner4.setModel(new SpinnerNumberModel(1000, 1, Integer.MAX_VALUE, 1));
 
@@ -36,8 +38,8 @@ public class PuzzleHelperGUI extends JFrame {
 		spinner3.addChangeListener(l);
 		spinner4.addChangeListener(l);
 
-		directionCB.addItem(PuzzleDirection.DOWN);
 		directionCB.addItem(PuzzleDirection.RIGHT);
+		directionCB.addItem(PuzzleDirection.DOWN);
 
 		JMenuBar bar = new JMenuBar();
 		JMenu menu = new JMenu("File");
@@ -45,8 +47,33 @@ public class PuzzleHelperGUI extends JFrame {
 		JMenuItem item = new JMenuItem("Exit");
 		menu.add(item);
 		bar.add(menu);
-
 		setJMenuBar(bar);
+
+		button1.addActionListener(new AbstractAction() {
+			@Override
+			public void actionPerformed(ActionEvent actionEvent) {
+				System.out.println("Button click test.");
+				update();
+			}
+		});
+		directionCB.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent actionEvent) {
+				update();
+			}
+		});
+		button3.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent actionEvent) {
+				previewPL.incrementFontSize();
+			}
+		});
+		button2.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent actionEvent) {
+				previewPL.decrementFontSize();
+			}
+		});
 
 		update();
 		setTitle("ThermoFischer SCIENTIFIC ArrayScan Cellomics Image Puzzle-Helper");
@@ -56,6 +83,7 @@ public class PuzzleHelperGUI extends JFrame {
 		setLocationRelativeTo(null);
 		setDefaultCloseOperation(EXIT_ON_CLOSE);
 		setVisible(true);
+
 	}
 
 	private void update() {

@@ -28,43 +28,43 @@ public class Puzzler {
 
 		PuzzleDirection currentDirection = direction;
 		int x = 0;
-		int y = 0;
+		int y = getH()-1;
 
-		for (int i = 0; i < getSize(); i++) {
+		for (int i = 0; i <= getSize(); i++) {
 			visitedMap.put(i, new Point(x, y));
-			System.out.println("Map: " + i + " -> " + x + "x" + y+" - "+currentDirection);
+			System.out.println("Map: " + i + " -> " + x + "x" + y + " - " + currentDirection);
 
 			switch (currentDirection) {
 				case RIGHT:
 					if (x + 1 < getW() && !hasPosition(x + 1, y)) {
 						x += 1;
 					} else {
-						y += 1;
-						currentDirection = PuzzleDirection.UP;
+						y -= 1;
+						currentDirection = PuzzleDirection.DOWN;
 					}
 					break;
 				case DOWN:
-					if (y + 1 < getH() && !hasPosition(x, y + 1)) {
-						y += 1;
+					if (y - 1 >= 0 && !hasPosition(x, y - 1)) {
+						y -= 1;
 					} else {
-						x += 1;
-						currentDirection = PuzzleDirection.RIGHT;
+						x -= 1;
+						currentDirection = PuzzleDirection.LEFT;
 					}
 					break;
 				case LEFT:
 					if (x - 1 >= 0 && !hasPosition(x - 1, y)) {
 						x -= 1;
 					} else {
-						y -= 1;
-						currentDirection = PuzzleDirection.DOWN;
+						y += 1;
+						currentDirection = PuzzleDirection.UP;
 					}
 					break;
 				case UP:
-					if (y - 1 >= 0 && !hasPosition(x, y - 1)) {
-						y = -1;
+					if (y + 1 < getH() && !hasPosition(x, y + 1)) {
+						y += 1;
 					} else {
-						x -= 1;
-						currentDirection = PuzzleDirection.LEFT;
+						x += 1;
+						currentDirection = PuzzleDirection.RIGHT;
 					}
 					break;
 			}
