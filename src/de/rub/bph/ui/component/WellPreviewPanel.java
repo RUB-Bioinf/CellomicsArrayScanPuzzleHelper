@@ -76,7 +76,6 @@ public class WellPreviewPanel extends JPanel {
 		return getFontSizeBase();
 	}
 
-
 	public void update() {
 		//System.out.println("Updating panel.");
 		Puzzler p = new Puzzler(getW(), getH(), getDirection());
