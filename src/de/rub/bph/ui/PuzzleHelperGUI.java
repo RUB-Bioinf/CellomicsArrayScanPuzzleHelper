@@ -10,9 +10,12 @@ import org.jetbrains.annotations.Nullable;
 import javax.swing.*;
 import javax.swing.event.ChangeListener;
 import javax.swing.filechooser.FileNameExtensionFilter;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.*;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -40,6 +43,8 @@ public class PuzzleHelperGUI extends JFrame {
 	private JButton button3;
 	private JButton autoReadImageSizesButton;
 
+	private JCheckBoxMenuItem autoUpdateCB;
+
 	public PuzzleHelperGUI() {
 
 		exportFileFilter = new FileNameExtensionFilter("XML", "xml");
@@ -50,7 +55,7 @@ public class PuzzleHelperGUI extends JFrame {
 		imWidthSP.setModel(new SpinnerNumberModel(1000, 1, Integer.MAX_VALUE, 1));
 		imHeightSP.setModel(new SpinnerNumberModel(1000, 1, Integer.MAX_VALUE, 1));
 
-		ChangeListener l = changeEvent -> update();
+		ChangeListener l = changeEvent -> requestUpdate();
 		pWidthSP.addChangeListener(l);
 		pHeightSP.addChangeListener(l);
 		imWidthSP.addChangeListener(l);
@@ -61,23 +66,67 @@ public class PuzzleHelperGUI extends JFrame {
 
 		JMenuBar bar = new JMenuBar();
 		JMenu menu = new JMenu("File");
-
 		JMenuItem item = new JMenuItem("Exit");
+		item.setAccelerator(KeyStroke.getKeyStroke('W', Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
 		menu.add(item);
 		bar.add(menu);
-		setJMenuBar(bar);
 
-		button1.addActionListener(new AbstractAction() {
+		menu = new JMenu("View");
+		autoUpdateCB = new JCheckBoxMenuItem("Auto update preview");
+		autoUpdateCB.setAccelerator(KeyStroke.getKeyStroke('U', Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
+		autoUpdateCB.setSelected(true);
+		menu.add(autoUpdateCB);
+
+		item = new JMenuItem("Reset");
+		item.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent actionEvent) {
-				System.out.println("Button click test.");
+				pack();
+				setLocationRelativeTo(null);
+				requestFocus();
+			}
+		});
+		item.setAccelerator(KeyStroke.getKeyStroke('R', Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
+		menu.add(item);
+		bar.add(menu);
+
+		menu = new JMenu("?");
+		item = new JMenuItem("About");
+		item.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent actionEvent) {
+				JOptionPane.showMessageDialog(PuzzleHelperGUI.this, "'" + CellomicsPuzzleHelper.NAME + "' by " + CellomicsPuzzleHelper.AUTHOR + ".\nVersion: " + CellomicsPuzzleHelper.VERSION + "\n\nCreated at the 'Ruhr University Bochum' and 'Leibniz Research Institute for environmental medicine'.", "About", JOptionPane.INFORMATION_MESSAGE);
+			}
+		});
+		menu.add(item);
+
+		item = new JMenuItem("View on GitHub");
+		item.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent actionEvent) {
+				try {
+					browseURL("https://github.com/RUB-Bioinf/CellomicsArrayScanPuzzleHelper");
+				} catch (Exception e) {
+					e.printStackTrace();
+					JOptionPane.showMessageDialog(PuzzleHelperGUI.this, "Failed to browse URL: " + e.getMessage());
+				}
+			}
+		});
+		menu.add(item);
+		bar.add(menu);
+
+		setJMenuBar(bar);
+
+		button1.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent actionEvent) {
 				update();
 			}
 		});
 		directionCB.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent actionEvent) {
-				update();
+				requestUpdate();
 			}
 		});
 		button3.addActionListener(new ActionListener() {
@@ -111,13 +160,18 @@ public class PuzzleHelperGUI extends JFrame {
 		});
 
 		update();
-		setTitle(CellomicsPuzzleHelper.NAME+" [Version "+CellomicsPuzzleHelper.VERSION+"]");
+		setTitle(CellomicsPuzzleHelper.NAME + " [Version " + CellomicsPuzzleHelper.VERSION + "]");
 		setContentPane(basePanel);
 		pack();
 		setMinimumSize(getSize());
 		setLocationRelativeTo(null);
 		setDefaultCloseOperation(EXIT_ON_CLOSE);
 		setVisible(true);
+	}
+
+	private void browseURL(String url) throws NullPointerException, URISyntaxException, IOException {
+		Desktop desktop = Desktop.getDesktop();
+		desktop.browse(new URI(url));
 	}
 
 	private void exportFile() throws IOException {
@@ -227,7 +281,11 @@ public class PuzzleHelperGUI extends JFrame {
 		ImagePlus ip = new Opener().openImage(selectFile.getAbsolutePath());
 		imWidthSP.setValue(ip.getWidth());
 		imHeightSP.setValue(ip.getHeight());
-		update();
+		requestUpdate();
+	}
+
+	private void requestUpdate() {
+		if (autoUpdateCB.isSelected()) update();
 	}
 
 	private void update() {

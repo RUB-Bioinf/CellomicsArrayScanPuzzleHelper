@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<WellType>
+	<imheight>255</imheight>
+	<imwidth>255</imwidth>
+	<pdir>Right</pdir>
+	<pfliprow>false</pfliprow>
+	<pheight>17</pheight>
+	<pwidth>14</pwidth>
+</WellType>
