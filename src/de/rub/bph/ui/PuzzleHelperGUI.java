@@ -36,12 +36,13 @@ public class PuzzleHelperGUI extends JFrame {
 	private JSpinner imWidthSP;
 	private JSpinner imHeightSP;
 	private JComboBox<PuzzleDirection> directionCB;
-	private JCheckBox flipImagesAlongTheCheckBox;
+	private JCheckBox flipRowCB;
 	private WellPreviewPanel previewPL;
 	private JLabel imagecountLB;
 	private JButton button2;
 	private JButton button3;
 	private JButton autoReadImageSizesButton;
+	private JCheckBox flipFinalImageCB;
 
 	private JCheckBoxMenuItem autoUpdateCB;
 
@@ -206,7 +207,8 @@ public class PuzzleHelperGUI extends JFrame {
 		map.put("pwidth", String.valueOf(pWidthSP.getValue()));
 		map.put("pheight", String.valueOf(pHeightSP.getValue()));
 		map.put("pdir", String.valueOf(directionCB.getSelectedItem()));
-		map.put("pfliprow", String.valueOf(flipImagesAlongTheCheckBox.isSelected()));
+		map.put("pfliprow", String.valueOf(flipRowCB.isSelected()));
+		map.put("pflipresult", String.valueOf(flipFinalImageCB.isSelected()));
 
 		FileOutputStream fout = new FileOutputStream(f);
 		BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(fout));

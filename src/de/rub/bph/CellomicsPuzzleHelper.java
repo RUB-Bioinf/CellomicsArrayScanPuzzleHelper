@@ -9,11 +9,11 @@ import javax.swing.*;
  */
 public class CellomicsPuzzleHelper {
 
-	public static final String NAME="ThermoFischer SCIENTIFIC ArrayScan Cellomics Image Puzzle-Helper";
-	public static final String VERSION="0.8.1b";
-	public static final String AUTHOR="Nils Förster";
+	public static final String NAME = "ThermoFischer SCIENTIFIC ArrayScan Cellomics Image Puzzle-Helper";
+	public static final String VERSION = "0.8.1b";
+	public static final String AUTHOR = "Nils Förster";
 
-	private static PuzzleHelperGUI helperGUI;
+	public static PuzzleHelperGUI helperGUI;
 
 	public static void main(String[] args) {
 		//JFrame frame = new JFrame("Nuls test");
@@ -32,7 +32,7 @@ public class CellomicsPuzzleHelper {
 					e.printStackTrace();
 				}
 
-				new PuzzleHelperGUI();
+				helperGUI = new PuzzleHelperGUI();
 			}
 		});
 	}
