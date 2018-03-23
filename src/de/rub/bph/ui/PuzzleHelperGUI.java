@@ -43,6 +43,7 @@ public class PuzzleHelperGUI extends JFrame {
 	private JButton button3;
 	private JButton autoReadImageSizesButton;
 	private JCheckBox flipFinalImageCB;
+	private JButton importBT;
 
 	private JCheckBoxMenuItem autoUpdateCB;
 
@@ -159,6 +160,12 @@ public class PuzzleHelperGUI extends JFrame {
 				autoReadImageSize();
 			}
 		});
+		importBT.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent actionEvent) {
+
+			}
+		});
 
 		update();
 		setTitle(CellomicsPuzzleHelper.NAME + " [Version " + CellomicsPuzzleHelper.VERSION + "]");
@@ -209,6 +216,7 @@ public class PuzzleHelperGUI extends JFrame {
 		map.put("pdir", String.valueOf(directionCB.getSelectedItem()));
 		map.put("pfliprow", String.valueOf(flipRowCB.isSelected()));
 		map.put("pflipresult", String.valueOf(flipFinalImageCB.isSelected()));
+		map.put("version", CellomicsPuzzleHelper.VERSION);
 
 		FileOutputStream fout = new FileOutputStream(f);
 		BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(fout));
