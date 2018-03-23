@@ -217,6 +217,7 @@ public class PuzzleHelperGUI extends JFrame {
 		map.put("pfliprow", String.valueOf(flipRowCB.isSelected()));
 		map.put("pflipresult", String.valueOf(flipFinalImageCB.isSelected()));
 		map.put("version", CellomicsPuzzleHelper.VERSION);
+		//TODO extract as constant to help instruction import
 
 		FileOutputStream fout = new FileOutputStream(f);
 		BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(fout));
