@@ -7,6 +7,13 @@ public enum PuzzleDirection {
 
 	LEFT, RIGHT, UP, DOWN;
 
+	public static PuzzleDirection getViaString(String name) {
+		for (PuzzleDirection direction : values()) {
+			if (direction.toString().equals(name)) return direction;
+		}
+		return null;
+	}
+
 	@Override
 	public String toString() {
 		switch (this) {

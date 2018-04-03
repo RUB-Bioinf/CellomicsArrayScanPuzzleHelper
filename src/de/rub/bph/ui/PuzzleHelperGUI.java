@@ -17,8 +17,11 @@ import java.io.*;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 
 /**
@@ -26,6 +29,14 @@ import java.util.HashMap;
  */
 public class PuzzleHelperGUI extends JFrame {
 
+	public static final String INSTRUCTION_IMWIDTH = "imwidth";
+	public static final String INSTRUCTION_IMHEIGHT = "imheight";
+	public static final String INSTRUCTION_PWIDTH = "pwidth";
+	public static final String INSTRUCTION_PHEIGHT = "pheight";
+	public static final String INSTRUCTION_PDIR = "pdir";
+	public static final String INSTRUCTION_PFLIPROW = "pfliprow";
+	public static final String INSTRUCTION_PFLIPRESULT = "pflipresult";
+	public static final String INSTRUCTION_VERSION = "version";
 	private FileNameExtensionFilter exportFileFilter, imageFileFilter;
 
 	private JButton button1;
@@ -163,7 +174,12 @@ public class PuzzleHelperGUI extends JFrame {
 		importBT.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent actionEvent) {
-
+				try {
+					actionImportFile();
+				} catch (IOException e) {
+					e.printStackTrace();
+					JOptionPane.showMessageDialog(PuzzleHelperGUI.this, "Failed to read instruction file:\n" + e.getMessage(), CellomicsPuzzleHelper.NAME, JOptionPane.ERROR_MESSAGE);
+				}
 			}
 		});
 
@@ -209,15 +225,14 @@ public class PuzzleHelperGUI extends JFrame {
 		if (!exportFileFilter.accept(f)) return;
 
 		HashMap<String, String> map = new HashMap<String, String>();
-		map.put("imwidth", String.valueOf(imWidthSP.getValue()));
-		map.put("imheight", String.valueOf(imHeightSP.getValue()));
-		map.put("pwidth", String.valueOf(pWidthSP.getValue()));
-		map.put("pheight", String.valueOf(pHeightSP.getValue()));
-		map.put("pdir", String.valueOf(directionCB.getSelectedItem()));
-		map.put("pfliprow", String.valueOf(flipRowCB.isSelected()));
-		map.put("pflipresult", String.valueOf(flipFinalImageCB.isSelected()));
-		map.put("version", CellomicsPuzzleHelper.VERSION);
-		//TODO extract as constant to help instruction import
+		map.put(INSTRUCTION_IMWIDTH, String.valueOf(imWidthSP.getValue()));
+		map.put(INSTRUCTION_IMHEIGHT, String.valueOf(imHeightSP.getValue()));
+		map.put(INSTRUCTION_PWIDTH, String.valueOf(pWidthSP.getValue()));
+		map.put(INSTRUCTION_PHEIGHT, String.valueOf(pHeightSP.getValue()));
+		map.put(INSTRUCTION_PDIR, String.valueOf(directionCB.getSelectedItem()));
+		map.put(INSTRUCTION_PFLIPROW, String.valueOf(flipRowCB.isSelected()));
+		map.put(INSTRUCTION_PFLIPRESULT, String.valueOf(flipFinalImageCB.isSelected()));
+		map.put(INSTRUCTION_VERSION, CellomicsPuzzleHelper.VERSION);
 
 		FileOutputStream fout = new FileOutputStream(f);
 		BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(fout));
@@ -250,6 +265,69 @@ public class PuzzleHelperGUI extends JFrame {
 		if (i == JFileChooser.APPROVE_OPTION) {
 			return chooser.getSelectedFile();
 		} else return null;
+	}
+
+	private void actionImportFile() throws IOException {
+		JFileChooser chooser = new JFileChooser();
+		chooser.setDialogTitle("Select instruction file");
+		chooser.setFileFilter(exportFileFilter);
+		chooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+		chooser.setApproveButtonText("Import");
+		int i = chooser.showOpenDialog(this);
+
+		if (i != JFileChooser.APPROVE_OPTION) return;
+		File f = chooser.getSelectedFile();
+
+		ArrayList<String> XMLArgumentList = new ArrayList<>();
+		XMLArgumentList.add(INSTRUCTION_IMWIDTH);
+		XMLArgumentList.add(INSTRUCTION_IMHEIGHT);
+		XMLArgumentList.add(INSTRUCTION_PWIDTH);
+		XMLArgumentList.add(INSTRUCTION_PHEIGHT);
+		XMLArgumentList.add(INSTRUCTION_PDIR);
+		XMLArgumentList.add(INSTRUCTION_PFLIPROW);
+		XMLArgumentList.add(INSTRUCTION_PFLIPRESULT);
+		XMLArgumentList.add(INSTRUCTION_VERSION);
+		HashMap<String, String> xmlMap = new HashMap<>();
+
+		BufferedReader br = new BufferedReader(new FileReader(f));
+		String line;
+		while ((line = br.readLine()) != null) {
+			line = line.trim();
+			ArrayList<String> temp = new ArrayList<>(XMLArgumentList);
+			for (String s : temp) {
+				String regex = "<" + s + ">(\\w+)</" + s + ">";
+				Matcher m = Pattern.compile(regex).matcher(line);
+				if (m.find()) {
+					System.out.println("Regex done: " + regex + " -> " + m.group(1));
+					xmlMap.put(s, m.group(1));
+					XMLArgumentList.remove(s);
+				}
+			}
+		}
+
+		if (!xmlMap.containsKey(INSTRUCTION_VERSION)) {
+			xmlMap.put(INSTRUCTION_VERSION, String.valueOf(CellomicsPuzzleHelper.VERSION));
+			XMLArgumentList.remove(INSTRUCTION_VERSION);
+			JOptionPane.showMessageDialog(this, "Failed to read the Version on this file. This could lead to unexpected behaviour.");
+		}
+
+		if (!XMLArgumentList.isEmpty()) {
+			JOptionPane.showMessageDialog(this, "Not enough instruction lines. This may lead to unexpected behaviour! Missing expected lines:\n" + Arrays.toString(XMLArgumentList.toArray()));
+		}
+
+		if (!xmlMap.get(INSTRUCTION_VERSION).equals(CellomicsPuzzleHelper.VERSION)) {
+			JOptionPane.showMessageDialog(this, "The instruction file was created from a different version. This could lead to unexpected behaviour.");
+		}
+
+		imWidthSP.setValue(Integer.valueOf(xmlMap.get(INSTRUCTION_IMWIDTH)));
+		imHeightSP.setValue(Integer.valueOf(xmlMap.get(INSTRUCTION_IMHEIGHT)));
+		pWidthSP.setValue(Integer.valueOf(xmlMap.get(INSTRUCTION_PWIDTH)));
+		pHeightSP.setValue(Integer.valueOf(xmlMap.get(INSTRUCTION_PHEIGHT)));
+		flipFinalImageCB.setSelected(Boolean.valueOf(xmlMap.get(INSTRUCTION_PFLIPRESULT)));
+		flipRowCB.setSelected(Boolean.valueOf(xmlMap.get(INSTRUCTION_PFLIPROW)));
+		directionCB.setSelectedItem(PuzzleDirection.valueOf(xmlMap.get(INSTRUCTION_PDIR)));
+
+		update();
 	}
 
 	private void autoReadImageSize() {
