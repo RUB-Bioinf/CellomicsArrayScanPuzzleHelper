@@ -1,7 +1,6 @@
 package de.rub.bph.ui;
 
 import de.rub.bph.CellomicsPuzzleHelper;
-import de.rub.bph.data.PuzzleDirection;
 import de.rub.bph.ui.component.WellPreviewPanel;
 import ij.ImagePlus;
 import ij.io.Opener;
@@ -23,6 +22,8 @@ import java.util.HashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import de.rub.bph.data.PuzzleDirection;
+
 
 /**
  * Created by nilfoe on 12/03/2018.
@@ -37,6 +38,8 @@ public class PuzzleHelperGUI extends JFrame {
 	public static final String INSTRUCTION_PFLIPROW = "pfliprow";
 	public static final String INSTRUCTION_PFLIPRESULT = "pflipresult";
 	public static final String INSTRUCTION_VERSION = "version";
+	public static final String INSTRUCTION_MAGNIFICATION = "immagni";
+
 	private FileNameExtensionFilter exportFileFilter, imageFileFilter;
 
 	private JButton button1;
@@ -55,6 +58,7 @@ public class PuzzleHelperGUI extends JFrame {
 	private JButton autoReadImageSizesButton;
 	private JCheckBox flipFinalImageCB;
 	private JButton importBT;
+	private JSpinner magnificationSP;
 
 	private JCheckBoxMenuItem autoUpdateCB;
 
@@ -63,6 +67,7 @@ public class PuzzleHelperGUI extends JFrame {
 		exportFileFilter = new FileNameExtensionFilter("XML", "xml");
 		imageFileFilter = new FileNameExtensionFilter("Image files", "tiff", "tif", "png", "bmp");
 
+		magnificationSP.setModel(new SpinnerNumberModel(10, 1, Integer.MAX_VALUE, 1));
 		pWidthSP.setModel(new SpinnerNumberModel(10, 1, Integer.MAX_VALUE, 1));
 		pHeightSP.setModel(new SpinnerNumberModel(10, 1, Integer.MAX_VALUE, 1));
 		imWidthSP.setModel(new SpinnerNumberModel(1000, 1, Integer.MAX_VALUE, 1));
@@ -232,6 +237,7 @@ public class PuzzleHelperGUI extends JFrame {
 		map.put(INSTRUCTION_PDIR, String.valueOf(directionCB.getSelectedItem()));
 		map.put(INSTRUCTION_PFLIPROW, String.valueOf(flipRowCB.isSelected()));
 		map.put(INSTRUCTION_PFLIPRESULT, String.valueOf(flipFinalImageCB.isSelected()));
+		map.put(INSTRUCTION_MAGNIFICATION, String.valueOf(magnificationSP.getValue()));
 		map.put(INSTRUCTION_VERSION, CellomicsPuzzleHelper.VERSION);
 
 		FileOutputStream fout = new FileOutputStream(f);
@@ -287,6 +293,7 @@ public class PuzzleHelperGUI extends JFrame {
 		XMLArgumentList.add(INSTRUCTION_PFLIPROW);
 		XMLArgumentList.add(INSTRUCTION_PFLIPRESULT);
 		XMLArgumentList.add(INSTRUCTION_VERSION);
+		XMLArgumentList.add(INSTRUCTION_MAGNIFICATION);
 		HashMap<String, String> xmlMap = new HashMap<>();
 
 		BufferedReader br = new BufferedReader(new FileReader(f));
@@ -322,6 +329,7 @@ public class PuzzleHelperGUI extends JFrame {
 		imWidthSP.setValue(Integer.valueOf(xmlMap.get(INSTRUCTION_IMWIDTH)));
 		imHeightSP.setValue(Integer.valueOf(xmlMap.get(INSTRUCTION_IMHEIGHT)));
 		pWidthSP.setValue(Integer.valueOf(xmlMap.get(INSTRUCTION_PWIDTH)));
+		magnificationSP.setValue(Integer.valueOf(xmlMap.get(INSTRUCTION_MAGNIFICATION)));
 		pHeightSP.setValue(Integer.valueOf(xmlMap.get(INSTRUCTION_PHEIGHT)));
 		flipFinalImageCB.setSelected(Boolean.valueOf(xmlMap.get(INSTRUCTION_PFLIPRESULT)));
 		flipRowCB.setSelected(Boolean.valueOf(xmlMap.get(INSTRUCTION_PFLIPROW)));

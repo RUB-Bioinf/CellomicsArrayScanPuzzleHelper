@@ -35,8 +35,6 @@ public class CellomicsPuzzleHelper {
 				helperGUI = new PuzzleHelperGUI();
 			}
 		});
-	}
-
-	;
+	};
 
 }
