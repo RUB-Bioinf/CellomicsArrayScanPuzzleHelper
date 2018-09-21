@@ -96,13 +96,10 @@ public class PuzzleHelperGUI extends JFrame {
 		menu.add(autoUpdateCB);
 
 		item = new JMenuItem("Reset");
-		item.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent actionEvent) {
-				pack();
-				setLocationRelativeTo(null);
-				requestFocus();
-			}
+		item.addActionListener(actionEvent -> {
+			pack();
+			setLocationRelativeTo(null);
+			requestFocus();
 		});
 		item.setAccelerator(KeyStroke.getKeyStroke('R', Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
 		menu.add(item);
@@ -110,24 +107,16 @@ public class PuzzleHelperGUI extends JFrame {
 
 		menu = new JMenu("?");
 		item = new JMenuItem("About");
-		item.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent actionEvent) {
-				JOptionPane.showMessageDialog(PuzzleHelperGUI.this, "'" + CellomicsPuzzleHelper.NAME + "' by " + CellomicsPuzzleHelper.AUTHOR + ".\nVersion: " + CellomicsPuzzleHelper.VERSION + "\n\nCreated at the 'Ruhr University Bochum' and 'Leibniz Research Institute for environmental medicine'.", "About", JOptionPane.INFORMATION_MESSAGE);
-			}
-		});
+		item.addActionListener(actionEvent -> JOptionPane.showMessageDialog(PuzzleHelperGUI.this, "'" + CellomicsPuzzleHelper.NAME + "' by " + CellomicsPuzzleHelper.AUTHOR + ".\nVersion: " + CellomicsPuzzleHelper.VERSION + "\n\nCreated at the 'Ruhr University Bochum' and 'Leibniz Research Institute for environmental medicine'.", "About", JOptionPane.INFORMATION_MESSAGE));
 		menu.add(item);
 
 		item = new JMenuItem("View on GitHub");
-		item.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent actionEvent) {
-				try {
-					browseURL("https://github.com/RUB-Bioinf/CellomicsArrayScanPuzzleHelper");
-				} catch (Exception e) {
-					e.printStackTrace();
-					JOptionPane.showMessageDialog(PuzzleHelperGUI.this, "Failed to browse URL: " + e.getMessage());
-				}
+		item.addActionListener(actionEvent -> {
+			try {
+				browseURL("https://github.com/RUB-Bioinf/CellomicsArrayScanPuzzleHelper");
+			} catch (Exception e) {
+				e.printStackTrace();
+				JOptionPane.showMessageDialog(PuzzleHelperGUI.this, "Failed to browse URL: " + e.getMessage());
 			}
 		});
 		menu.add(item);
@@ -135,56 +124,25 @@ public class PuzzleHelperGUI extends JFrame {
 
 		setJMenuBar(bar);
 
-		button1.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent actionEvent) {
-				update();
+		button1.addActionListener(actionEvent -> update());
+		directionCB.addActionListener(actionEvent -> requestUpdate());
+		button3.addActionListener(actionEvent -> previewPL.incrementFontSize());
+		button2.addActionListener(actionEvent -> previewPL.decrementFontSize());
+		exportInstructionFileButton.addActionListener(actionEvent -> {
+			try {
+				exportFile();
+			} catch (IOException e) {
+				e.printStackTrace();
+				JOptionPane.showMessageDialog(PuzzleHelperGUI.this, "Failed to save data to the file:\n" + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
 			}
 		});
-		directionCB.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent actionEvent) {
-				requestUpdate();
-			}
-		});
-		button3.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent actionEvent) {
-				previewPL.incrementFontSize();
-			}
-		});
-		button2.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent actionEvent) {
-				previewPL.decrementFontSize();
-			}
-		});
-		exportInstructionFileButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent actionEvent) {
-				try {
-					exportFile();
-				} catch (IOException e) {
-					e.printStackTrace();
-					JOptionPane.showMessageDialog(PuzzleHelperGUI.this, "Failed to save data to the file:\n" + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
-				}
-			}
-		});
-		autoReadImageSizesButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent actionEvent) {
-				autoReadImageSize();
-			}
-		});
-		importBT.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent actionEvent) {
-				try {
-					actionImportFile();
-				} catch (IOException e) {
-					e.printStackTrace();
-					JOptionPane.showMessageDialog(PuzzleHelperGUI.this, "Failed to read instruction file:\n" + e.getMessage(), CellomicsPuzzleHelper.NAME, JOptionPane.ERROR_MESSAGE);
-				}
+		autoReadImageSizesButton.addActionListener(actionEvent -> autoReadImageSize());
+		importBT.addActionListener(actionEvent -> {
+			try {
+				actionImportFile();
+			} catch (IOException e) {
+				e.printStackTrace();
+				JOptionPane.showMessageDialog(PuzzleHelperGUI.this, "Failed to read instruction file:\n" + e.getMessage(), CellomicsPuzzleHelper.NAME, JOptionPane.ERROR_MESSAGE);
 			}
 		});
 
