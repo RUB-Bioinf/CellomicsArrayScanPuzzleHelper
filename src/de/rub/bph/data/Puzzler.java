@@ -7,35 +7,39 @@ import java.util.HashMap;
  * Created by nilfoe on 12/03/2018.
  */
 public class Puzzler {
-
+	
 	public static final int POSITION_NOT_USED = -1;
-
+	
 	private int w;
 	private int h;
+	private boolean mirrorRowTiling;
+	private boolean mirrorColumnTiling;
 	private PuzzleDirection direction;
-
+	
 	private HashMap<Integer, Point> visitedMap;
-
-	public Puzzler(int w, int h, PuzzleDirection direction) {
+	
+	public Puzzler(int w, int h, boolean mirrorRowTiling, boolean mirrorColumnTiling, PuzzleDirection direction) {
 		this.w = w;
 		this.h = h;
 		this.direction = direction;
+		this.mirrorRowTiling = mirrorRowTiling;
+		this.mirrorColumnTiling = mirrorColumnTiling;
 		visitedMap = new HashMap<>();
 	}
-
+	
 	public void puzzle() {
 		System.out.println("Puzzling a new structure: " + getW() + "x" + getH());
-
+		
 		PuzzleDirection currentDirection = direction;
 		PuzzleDirection startDirection = direction;
-
+		
 		int x = 0;
 		int y = getH() - 1;
-
+		
 		for (int i = 0; i <= getSize(); i++) {
-			visitedMap.put(i, new Point(x, y));
+			visitedMap.put(i, transformPosition(x, y));
 			System.out.println("Map: " + i + " -> " + x + "x" + y + " - " + currentDirection);
-
+			
 			switch (currentDirection) {
 				case RIGHT:
 					if (x + 1 < getW() && !hasPosition(x + 1, y)) {
@@ -92,35 +96,45 @@ public class Puzzler {
 			}
 		}
 	}
-
-	public boolean equals(Puzzler p) {
-		return getW() == p.getW() && getH() == p.getH() && getDirection() == p.getDirection();
+	
+	public int getW() {
+		return w;
 	}
-
-	@Override
-	public int hashCode() {
-		int hash = "Nils".hashCode();
-
-		hash = 31 * hash + getW();
-		hash = 31 * hash + getH();
-		hash = 31 * hash + visitedMap.hashCode();
-
-		return hash;
+	
+	public int getH() {
+		return h;
 	}
-
+	
+	public int getSize() {
+		return getW() * getH();
+	}
+	
+	private Point transformPosition(int x, int y) {
+		if (isMirrorRowTiling()) {
+			x = getW() - x;
+		}
+		if (isMirrorColumnTiling()) {
+			y = getH() - y;
+		}
+		return new Point(x, y);
+	}
+	
 	public boolean hasPosition(int x, int y) {
 		return getPosition(x, y) != POSITION_NOT_USED;
 	}
-
-	public Point getPosition(int i) {
-		return visitedMap.get(i);
+	
+	public boolean isMirrorRowTiling() {
+		return mirrorRowTiling;
 	}
-
-
+	
+	public boolean isMirrorColumnTiling() {
+		return mirrorColumnTiling;
+	}
+	
 	public int getPosition(int x, int y) {
-		return getPosition(new Point(x, y));
+		return getPosition(transformPosition(x, y));
 	}
-
+	
 	public int getPosition(Point v) {
 		for (Integer i : visitedMap.keySet()) {
 			Point visited = getPosition(i);
@@ -128,20 +142,27 @@ public class Puzzler {
 		}
 		return POSITION_NOT_USED;
 	}
-
-	public int getSize() {
-		return getW() * getH();
+	
+	public Point getPosition(int i) {
+		return visitedMap.get(i);
 	}
-
-	public int getW() {
-		return w;
+	
+	public boolean equals(Puzzler p) {
+		return getW() == p.getW() && getH() == p.getH() && getDirection() == p.getDirection() && isMirrorColumnTiling() == p.isMirrorColumnTiling() && isMirrorRowTiling() && isMirrorRowTiling();
 	}
-
-	public int getH() {
-		return h;
-	}
-
+	
 	public PuzzleDirection getDirection() {
 		return direction;
+	}
+	
+	@Override
+	public int hashCode() {
+		int hash = "Nils".hashCode();
+		
+		hash = 31 * hash + getW();
+		hash = 31 * hash + getH();
+		hash = 31 * hash + visitedMap.hashCode();
+		
+		return hash;
 	}
 }

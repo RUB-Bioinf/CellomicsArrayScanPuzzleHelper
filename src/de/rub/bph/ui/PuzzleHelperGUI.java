@@ -1,6 +1,7 @@
 package de.rub.bph.ui;
 
 import de.rub.bph.CellomicsPuzzleHelper;
+import de.rub.bph.data.PuzzleDirection;
 import de.rub.bph.ui.component.WellPreviewPanel;
 import ij.ImagePlus;
 import ij.io.Opener;
@@ -10,8 +11,6 @@ import javax.swing.*;
 import javax.swing.event.ChangeListener;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.io.*;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -22,26 +21,25 @@ import java.util.HashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import de.rub.bph.data.PuzzleDirection;
-
 
 /**
  * Created by nilfoe on 12/03/2018.
  */
 public class PuzzleHelperGUI extends JFrame {
-
-	public static final String INSTRUCTION_IMWIDTH = "imwidth";
+	
 	public static final String INSTRUCTION_IMHEIGHT = "imheight";
-	public static final String INSTRUCTION_PWIDTH = "pwidth";
-	public static final String INSTRUCTION_PHEIGHT = "pheight";
-	public static final String INSTRUCTION_PDIR = "pdir";
-	public static final String INSTRUCTION_PFLIPROW = "pfliprow";
-	public static final String INSTRUCTION_PFLIPRESULT = "pflipresult";
-	public static final String INSTRUCTION_VERSION = "version";
+	public static final String INSTRUCTION_IMWIDTH = "imwidth";
 	public static final String INSTRUCTION_MAGNIFICATION = "immagni";
-
+	public static final String INSTRUCTION_MIRROR_COLUMN_TILING = "pmirrorcolumntiling";
+	public static final String INSTRUCTION_MIRROR_ROW_TILING = "pmirrorrowtiling";
+	public static final String INSTRUCTION_PDIR = "pdir";
+	public static final String INSTRUCTION_PFLIPRESULT = "pflipresult";
+	public static final String INSTRUCTION_PFLIPROW = "pfliprow";
+	public static final String INSTRUCTION_PHEIGHT = "pheight";
+	public static final String INSTRUCTION_PWIDTH = "pwidth";
+	public static final String INSTRUCTION_VERSION = "version";
 	private FileNameExtensionFilter exportFileFilter, imageFileFilter;
-
+	
 	private JButton button1;
 	private JPanel basePanel;
 	private JButton exportInstructionFileButton;
@@ -59,42 +57,44 @@ public class PuzzleHelperGUI extends JFrame {
 	private JCheckBox flipFinalImageCB;
 	private JButton importBT;
 	private JSpinner magnificationSP;
-
+	private JCheckBox mirrorRowTilingCB;
+	private JCheckBox mirrorColumnTilingCB;
+	
 	private JCheckBoxMenuItem autoUpdateCB;
-
+	
 	public PuzzleHelperGUI() {
-
+		
 		exportFileFilter = new FileNameExtensionFilter("XML", "xml");
 		imageFileFilter = new FileNameExtensionFilter("Image files", "tiff", "tif", "png", "bmp");
-
+		
 		magnificationSP.setModel(new SpinnerNumberModel(10, 1, Integer.MAX_VALUE, 1));
 		pWidthSP.setModel(new SpinnerNumberModel(10, 1, Integer.MAX_VALUE, 1));
 		pHeightSP.setModel(new SpinnerNumberModel(10, 1, Integer.MAX_VALUE, 1));
 		imWidthSP.setModel(new SpinnerNumberModel(1000, 1, Integer.MAX_VALUE, 1));
 		imHeightSP.setModel(new SpinnerNumberModel(1000, 1, Integer.MAX_VALUE, 1));
-
+		
 		ChangeListener l = changeEvent -> requestUpdate();
 		pWidthSP.addChangeListener(l);
 		pHeightSP.addChangeListener(l);
 		imWidthSP.addChangeListener(l);
 		imHeightSP.addChangeListener(l);
-
+		
 		directionCB.addItem(PuzzleDirection.RIGHT);
 		directionCB.addItem(PuzzleDirection.DOWN);
-
+		
 		JMenuBar bar = new JMenuBar();
 		JMenu menu = new JMenu("File");
 		JMenuItem item = new JMenuItem("Exit");
 		item.setAccelerator(KeyStroke.getKeyStroke('W', Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
 		menu.add(item);
 		bar.add(menu);
-
+		
 		menu = new JMenu("View");
 		autoUpdateCB = new JCheckBoxMenuItem("Auto update preview");
 		autoUpdateCB.setAccelerator(KeyStroke.getKeyStroke('U', Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
 		autoUpdateCB.setSelected(true);
 		menu.add(autoUpdateCB);
-
+		
 		item = new JMenuItem("Reset");
 		item.addActionListener(actionEvent -> {
 			pack();
@@ -104,12 +104,12 @@ public class PuzzleHelperGUI extends JFrame {
 		item.setAccelerator(KeyStroke.getKeyStroke('R', Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
 		menu.add(item);
 		bar.add(menu);
-
+		
 		menu = new JMenu("?");
 		item = new JMenuItem("About");
 		item.addActionListener(actionEvent -> JOptionPane.showMessageDialog(PuzzleHelperGUI.this, "'" + CellomicsPuzzleHelper.NAME + "' by " + CellomicsPuzzleHelper.AUTHOR + ".\nVersion: " + CellomicsPuzzleHelper.VERSION + "\n\nCreated at the 'Ruhr University Bochum' and 'Leibniz Research Institute for environmental medicine'.", "About", JOptionPane.INFORMATION_MESSAGE));
 		menu.add(item);
-
+		
 		item = new JMenuItem("View on GitHub");
 		item.addActionListener(actionEvent -> {
 			try {
@@ -119,11 +119,14 @@ public class PuzzleHelperGUI extends JFrame {
 				JOptionPane.showMessageDialog(PuzzleHelperGUI.this, "Failed to browse URL: " + e.getMessage());
 			}
 		});
+		
 		menu.add(item);
 		bar.add(menu);
-
 		setJMenuBar(bar);
-
+		
+		mirrorColumnTilingCB.addActionListener(actionEvent -> requestUpdate());
+		;
+		mirrorRowTilingCB.addActionListener(actionEvent -> requestUpdate());
 		button1.addActionListener(actionEvent -> update());
 		directionCB.addActionListener(actionEvent -> requestUpdate());
 		button3.addActionListener(actionEvent -> previewPL.incrementFontSize());
@@ -145,7 +148,7 @@ public class PuzzleHelperGUI extends JFrame {
 				JOptionPane.showMessageDialog(PuzzleHelperGUI.this, "Failed to read instruction file:\n" + e.getMessage(), CellomicsPuzzleHelper.NAME, JOptionPane.ERROR_MESSAGE);
 			}
 		});
-
+		
 		update();
 		setTitle(CellomicsPuzzleHelper.NAME + " [Version " + CellomicsPuzzleHelper.VERSION + "]");
 		setContentPane(basePanel);
@@ -155,18 +158,18 @@ public class PuzzleHelperGUI extends JFrame {
 		setDefaultCloseOperation(EXIT_ON_CLOSE);
 		setVisible(true);
 	}
-
+	
 	private void browseURL(String url) throws NullPointerException, URISyntaxException, IOException {
 		Desktop desktop = Desktop.getDesktop();
 		desktop.browse(new URI(url));
 	}
-
+	
 	private void exportFile() throws IOException {
 		File f = chooseFile();
 		if (f == null) {
 			return;
 		}
-
+		
 		boolean missingExtensions = true;
 		for (String extension : exportFileFilter.getExtensions()) {
 			if (f.getAbsolutePath().toLowerCase().endsWith("." + extension.toLowerCase())) missingExtensions = false;
@@ -174,7 +177,7 @@ public class PuzzleHelperGUI extends JFrame {
 		if (missingExtensions) {
 			f = new File(f.getAbsolutePath() + "." + exportFileFilter.getExtensions()[0]);
 		}
-
+		
 		if (f.exists()) {
 			int answer = JOptionPane.showConfirmDialog(this, "The file " + f.getName() + " already exists.\nDo you want to overwrite it?", CellomicsPuzzleHelper.NAME, JOptionPane.YES_NO_OPTION);
 			if (answer != JOptionPane.YES_OPTION) {
@@ -184,40 +187,42 @@ public class PuzzleHelperGUI extends JFrame {
 		} else {
 			f.createNewFile();
 		}
-
+		
 		if (!exportFileFilter.accept(f)) return;
-
+		
 		HashMap<String, String> map = new HashMap<String, String>();
 		map.put(INSTRUCTION_IMWIDTH, String.valueOf(imWidthSP.getValue()));
 		map.put(INSTRUCTION_IMHEIGHT, String.valueOf(imHeightSP.getValue()));
 		map.put(INSTRUCTION_PWIDTH, String.valueOf(pWidthSP.getValue()));
 		map.put(INSTRUCTION_PHEIGHT, String.valueOf(pHeightSP.getValue()));
 		map.put(INSTRUCTION_PDIR, String.valueOf(directionCB.getSelectedItem()));
+		map.put(INSTRUCTION_MIRROR_COLUMN_TILING, String.valueOf(mirrorColumnTilingCB.isSelected()));
+		map.put(INSTRUCTION_MIRROR_ROW_TILING, String.valueOf(mirrorRowTilingCB.isSelected()));
 		map.put(INSTRUCTION_PFLIPROW, String.valueOf(flipRowCB.isSelected()));
 		map.put(INSTRUCTION_PFLIPRESULT, String.valueOf(flipFinalImageCB.isSelected()));
 		map.put(INSTRUCTION_MAGNIFICATION, String.valueOf(magnificationSP.getValue()));
 		map.put(INSTRUCTION_VERSION, CellomicsPuzzleHelper.VERSION);
-
+		
 		FileOutputStream fout = new FileOutputStream(f);
 		BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(fout));
 		bw.write("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>");
 		bw.newLine();
 		bw.write("<WellType>");
-
+		
 		ArrayList<String> args = new ArrayList<>();
 		args.addAll(map.keySet());
 		Collections.sort(args);
-
+		
 		for (String s : args) {
 			bw.newLine();
 			bw.write("\t<" + s + ">" + map.get(s) + "</" + s + ">");
 		}
-
+		
 		bw.newLine();
 		bw.write("</WellType>");
 		bw.close();
 	}
-
+	
 	@Nullable
 	private File chooseFile() {
 		JFileChooser chooser = new JFileChooser();
@@ -230,7 +235,7 @@ public class PuzzleHelperGUI extends JFrame {
 			return chooser.getSelectedFile();
 		} else return null;
 	}
-
+	
 	private void actionImportFile() throws IOException {
 		JFileChooser chooser = new JFileChooser();
 		chooser.setDialogTitle("Select instruction file");
@@ -238,10 +243,10 @@ public class PuzzleHelperGUI extends JFrame {
 		chooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
 		chooser.setApproveButtonText("Import");
 		int i = chooser.showOpenDialog(this);
-
+		
 		if (i != JFileChooser.APPROVE_OPTION) return;
 		File f = chooser.getSelectedFile();
-
+		
 		ArrayList<String> XMLArgumentList = new ArrayList<>();
 		XMLArgumentList.add(INSTRUCTION_IMWIDTH);
 		XMLArgumentList.add(INSTRUCTION_IMHEIGHT);
@@ -252,8 +257,10 @@ public class PuzzleHelperGUI extends JFrame {
 		XMLArgumentList.add(INSTRUCTION_PFLIPRESULT);
 		XMLArgumentList.add(INSTRUCTION_VERSION);
 		XMLArgumentList.add(INSTRUCTION_MAGNIFICATION);
+		XMLArgumentList.add(INSTRUCTION_MIRROR_COLUMN_TILING);
+		XMLArgumentList.add(INSTRUCTION_MIRROR_ROW_TILING);
 		HashMap<String, String> xmlMap = new HashMap<>();
-
+		
 		BufferedReader br = new BufferedReader(new FileReader(f));
 		String line;
 		while ((line = br.readLine()) != null) {
@@ -269,36 +276,44 @@ public class PuzzleHelperGUI extends JFrame {
 				}
 			}
 		}
-
+		
 		if (!xmlMap.containsKey(INSTRUCTION_VERSION)) {
 			xmlMap.put(INSTRUCTION_VERSION, String.valueOf(CellomicsPuzzleHelper.VERSION));
 			XMLArgumentList.remove(INSTRUCTION_VERSION);
 			JOptionPane.showMessageDialog(this, "Failed to read the Version on this file. This could lead to unexpected behaviour.");
 		}
-
+		
 		if (!XMLArgumentList.isEmpty()) {
 			JOptionPane.showMessageDialog(this, "Not enough instruction lines. This may lead to unexpected behaviour! Missing expected lines:\n" + Arrays.toString(XMLArgumentList.toArray()));
 		}
-
+		
 		if (!xmlMap.get(INSTRUCTION_VERSION).equals(CellomicsPuzzleHelper.VERSION)) {
 			JOptionPane.showMessageDialog(this, "The instruction file was created from a different version. This could lead to unexpected behaviour.");
 		}
-
-		imWidthSP.setValue(Integer.valueOf(xmlMap.get(INSTRUCTION_IMWIDTH)));
-		imHeightSP.setValue(Integer.valueOf(xmlMap.get(INSTRUCTION_IMHEIGHT)));
-		pWidthSP.setValue(Integer.valueOf(xmlMap.get(INSTRUCTION_PWIDTH)));
-		magnificationSP.setValue(Integer.valueOf(xmlMap.get(INSTRUCTION_MAGNIFICATION)));
-		pHeightSP.setValue(Integer.valueOf(xmlMap.get(INSTRUCTION_PHEIGHT)));
-		flipFinalImageCB.setSelected(Boolean.valueOf(xmlMap.get(INSTRUCTION_PFLIPRESULT)));
-		flipRowCB.setSelected(Boolean.valueOf(xmlMap.get(INSTRUCTION_PFLIPROW)));
-		directionCB.setSelectedItem(PuzzleDirection.valueOf(xmlMap.get(INSTRUCTION_PDIR)));
-
+		
+		try {
+			imWidthSP.setValue(Integer.valueOf(xmlMap.get(INSTRUCTION_IMWIDTH)));
+			imHeightSP.setValue(Integer.valueOf(xmlMap.get(INSTRUCTION_IMHEIGHT)));
+			pWidthSP.setValue(Integer.valueOf(xmlMap.get(INSTRUCTION_PWIDTH)));
+			magnificationSP.setValue(Integer.valueOf(xmlMap.get(INSTRUCTION_MAGNIFICATION)));
+			pHeightSP.setValue(Integer.valueOf(xmlMap.get(INSTRUCTION_PHEIGHT)));
+			flipFinalImageCB.setSelected(Boolean.valueOf(xmlMap.get(INSTRUCTION_PFLIPRESULT)));
+			flipRowCB.setSelected(Boolean.valueOf(xmlMap.get(INSTRUCTION_PFLIPROW)));
+			mirrorColumnTilingCB.setSelected(Boolean.valueOf(xmlMap.get(INSTRUCTION_MIRROR_ROW_TILING)));
+			mirrorRowTilingCB.setSelected(Boolean.valueOf(xmlMap.get(INSTRUCTION_MIRROR_COLUMN_TILING)));
+			directionCB.setSelectedItem(PuzzleDirection.valueOf(xmlMap.get(INSTRUCTION_PDIR)));
+		} catch (Exception e) {
+			e.printStackTrace();
+			JOptionPane.showMessageDialog(this, "The file did not contain every smart well parameter required by this version and importing stopped. This may lead to unexpected behaviour.", "Error!", JOptionPane.ERROR_MESSAGE);
+			return;
+		}
+		
 		update();
 	}
-
+	
 	private void autoReadImageSize() {
 		File selectFile;
-
+		
 		JFileChooser chooser = new JFileChooser();
 		chooser.setDialogTitle("Select image folder or file");
 		chooser.setFileFilter(imageFileFilter);
@@ -308,17 +323,17 @@ public class PuzzleHelperGUI extends JFrame {
 		if (i == JFileChooser.APPROVE_OPTION) {
 			selectFile = chooser.getSelectedFile();
 		} else return;
-
+		
 		if (selectFile.isDirectory()) {
 			File[] files = selectFile.listFiles();
 			if (files == null || files.length == 0) {
 				JOptionPane.showMessageDialog(this, "The selected directory is empty.");
 				return;
 			}
-
+			
 			for (File f : files) {
 				if (f.isDirectory()) continue;
-
+				
 				if (imageFileFilter.accept(f)) {
 					selectFile = f;
 					break;
@@ -331,25 +346,28 @@ public class PuzzleHelperGUI extends JFrame {
 				JOptionPane.showMessageDialog(this, "Assuming image dimensions based on file: " + selectFile.getName());
 			}
 		}
-
+		
 		//Using imageJ for better performance on large image files
 		ImagePlus ip = new Opener().openImage(selectFile.getAbsolutePath());
 		imWidthSP.setValue(ip.getWidth());
 		imHeightSP.setValue(ip.getHeight());
 		requestUpdate();
 	}
-
+	
 	private void requestUpdate() {
 		if (autoUpdateCB.isSelected()) update();
 	}
-
+	
 	private void update() {
 		int w = (int) pWidthSP.getValue();
 		int h = (int) pHeightSP.getValue();
 		PuzzleDirection direction = (PuzzleDirection) directionCB.getSelectedItem();
-
-		previewPL.update(w, h, direction);
+		
+		boolean mirrorRowTiling = mirrorRowTilingCB.isSelected();
+		boolean mirrorColumnTiling = mirrorColumnTilingCB.isSelected();
+		
+		previewPL.update(w, h, mirrorRowTiling, mirrorColumnTiling, direction);
 		imagecountLB.setText("Image count per well: " + w * h + " [" + w + "x" + h + "]");
 	}
-
+	
 }
