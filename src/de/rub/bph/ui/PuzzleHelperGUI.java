@@ -40,7 +40,7 @@ public class PuzzleHelperGUI extends JFrame {
 	public static final String INSTRUCTION_VERSION = "version";
 	private FileNameExtensionFilter exportFileFilter, imageFileFilter;
 	
-	private JButton button1;
+	private JButton refreshBT;
 	private JPanel basePanel;
 	private JButton exportInstructionFileButton;
 	private JSpinner pWidthSP;
@@ -59,6 +59,7 @@ public class PuzzleHelperGUI extends JFrame {
 	private JSpinner magnificationSP;
 	private JCheckBox mirrorRowTilingCB;
 	private JCheckBox mirrorColumnTilingCB;
+	private JCheckBox highlightPuzzleCB;
 	
 	private JCheckBoxMenuItem autoUpdateCB;
 	
@@ -125,9 +126,9 @@ public class PuzzleHelperGUI extends JFrame {
 		setJMenuBar(bar);
 		
 		mirrorColumnTilingCB.addActionListener(actionEvent -> requestUpdate());
-		;
 		mirrorRowTilingCB.addActionListener(actionEvent -> requestUpdate());
-		button1.addActionListener(actionEvent -> update());
+		refreshBT.addActionListener(actionEvent -> update());
+		highlightPuzzleCB.addActionListener(actionEvent -> update());
 		directionCB.addActionListener(actionEvent -> requestUpdate());
 		button3.addActionListener(actionEvent -> previewPL.incrementFontSize());
 		button2.addActionListener(actionEvent -> previewPL.decrementFontSize());
@@ -365,8 +366,9 @@ public class PuzzleHelperGUI extends JFrame {
 		
 		boolean mirrorRowTiling = mirrorRowTilingCB.isSelected();
 		boolean mirrorColumnTiling = mirrorColumnTilingCB.isSelected();
+		boolean highlightPuzzle = highlightPuzzleCB.isSelected();
 		
-		previewPL.update(w, h, mirrorRowTiling, mirrorColumnTiling, direction);
+		previewPL.update(w, h, mirrorRowTiling, mirrorColumnTiling, highlightPuzzle, direction);
 		imagecountLB.setText("Image count per well: " + w * h + " [" + w + "x" + h + "]");
 	}
 	
