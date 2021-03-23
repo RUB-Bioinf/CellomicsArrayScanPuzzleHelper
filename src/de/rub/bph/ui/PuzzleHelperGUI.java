@@ -2,12 +2,14 @@ package de.rub.bph.ui;
 
 import de.rub.bph.CellomicsPuzzleHelper;
 import de.rub.bph.data.PuzzleDirection;
+import de.rub.bph.ui.component.WellPartitionPanel;
 import de.rub.bph.ui.component.WellPreviewPanel;
 import ij.ImagePlus;
 import ij.io.Opener;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
+import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
@@ -25,7 +27,7 @@ import java.util.regex.Pattern;
 /**
  * Created by nilfoe on 12/03/2018.
  */
-public class PuzzleHelperGUI extends JFrame {
+public class PuzzleHelperGUI extends JFrame implements WellPartitionPanel.WellPartitionPanelListener {
 	
 	public static final String INSTRUCTION_IMHEIGHT = "imheight";
 	public static final String INSTRUCTION_IMWIDTH = "imwidth";
@@ -60,6 +62,8 @@ public class PuzzleHelperGUI extends JFrame {
 	private JCheckBox mirrorRowTilingCB;
 	private JCheckBox mirrorColumnTilingCB;
 	private JCheckBox highlightPuzzleCB;
+	private JTabbedPane partitionsTabbedPane;
+	private JSpinner partitionsSP;
 	
 	private JCheckBoxMenuItem autoUpdateCB;
 	
@@ -73,12 +77,14 @@ public class PuzzleHelperGUI extends JFrame {
 		pHeightSP.setModel(new SpinnerNumberModel(10, 1, Integer.MAX_VALUE, 1));
 		imWidthSP.setModel(new SpinnerNumberModel(1000, 1, Integer.MAX_VALUE, 1));
 		imHeightSP.setModel(new SpinnerNumberModel(1000, 1, Integer.MAX_VALUE, 1));
+		partitionsSP.setModel(new SpinnerNumberModel(1, 1, Integer.MAX_VALUE, 1));
 		
 		ChangeListener l = changeEvent -> requestUpdate();
 		pWidthSP.addChangeListener(l);
 		pHeightSP.addChangeListener(l);
 		imWidthSP.addChangeListener(l);
 		imHeightSP.addChangeListener(l);
+		partitionsSP.addChangeListener(changeEvent -> update());
 		
 		directionCB.addItem(PuzzleDirection.RIGHT);
 		directionCB.addItem(PuzzleDirection.DOWN);
@@ -370,6 +376,51 @@ public class PuzzleHelperGUI extends JFrame {
 		
 		previewPL.update(w, h, mirrorRowTiling, mirrorColumnTiling, highlightPuzzle, direction);
 		imagecountLB.setText("Image count per well: " + w * h + " [" + w + "x" + h + "]");
+		
+		updateWellPartitionTabs();
 	}
 	
+	private void updateWellPartitionTabs() {
+		System.out.println("Updating Well Partition Tabs");
+		int currentTabCount = partitionsTabbedPane.getTabCount();
+		int partitionSPValue = (int) partitionsSP.getValue();
+		
+		for (int i = 1; i <= partitionSPValue; i++) {
+			if (i > currentTabCount) {
+				System.out.println("Partition Index " + i + " exceeds current partition count. Adding a partition.");
+				WellPartitionPanel p = new WellPartitionPanel(12, 8);
+				partitionsTabbedPane.addTab("Unknown Partition " + i, p);
+				p.addListener(this);
+				
+				p.update();
+			}
+		}
+		
+		while (partitionsTabbedPane.getTabCount() > partitionSPValue) {
+			partitionsTabbedPane.removeTabAt(partitionsTabbedPane.getTabCount() - 1);
+		}
+		
+		invalidate();
+		repaint();
+		partitionsTabbedPane.invalidate();
+		partitionsTabbedPane.repaint();
+	}
+	
+	@Override
+	public void onWellPartitionPanelChange(WellPartitionPanel source) {
+		int partitionSPValue = (int) partitionsSP.getValue();
+		if (partitionSPValue <= 0) {
+			return;
+		}
+		
+		for (int i = 0; i < partitionsTabbedPane.getTabCount(); i++) {
+			Component c = partitionsTabbedPane.getComponentAt(i);
+			if (c instanceof WellPartitionPanel) {
+				WellPartitionPanel p = (WellPartitionPanel) c;
+				int wellCount = p.getUsedWellCount();
+				int controlCount = p.getControlCount();
+				partitionsTabbedPane.setTitleAt(i, "Partition " + (i+1) + " [" + wellCount + ";" + controlCount + "]");
+			}
+		}
+	}
 }
