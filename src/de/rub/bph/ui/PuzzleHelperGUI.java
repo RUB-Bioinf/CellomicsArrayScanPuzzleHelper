@@ -7,11 +7,18 @@ import de.rub.bph.ui.component.WellPreviewPanel;
 import ij.ImagePlus;
 import ij.io.Opener;
 import org.jetbrains.annotations.Nullable;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.xml.sax.SAXException;
 
 import javax.swing.*;
-import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.swing.filechooser.FileNameExtensionFilter;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 import java.awt.*;
 import java.io.*;
 import java.net.URI;
@@ -29,11 +36,16 @@ import java.util.regex.Pattern;
  */
 public class PuzzleHelperGUI extends JFrame implements WellPartitionPanel.WellPartitionPanelListener {
 	
+	public static final String INSTRUCTION_BASE_FILE = "WellType";
+	
 	public static final String INSTRUCTION_IMHEIGHT = "imheight";
 	public static final String INSTRUCTION_IMWIDTH = "imwidth";
 	public static final String INSTRUCTION_MAGNIFICATION = "immagni";
 	public static final String INSTRUCTION_MIRROR_COLUMN_TILING = "pmirrorcolumntiling";
 	public static final String INSTRUCTION_MIRROR_ROW_TILING = "pmirrorrowtiling";
+	public static final String INSTRUCTION_PARTITION = "Partitions";
+	public static final String INSTRUCTION_PARTITION_CONTROL = "ControlWells";
+	public static final String INSTRUCTION_PARTITION_USED = "UsedWells";
 	public static final String INSTRUCTION_PDIR = "pdir";
 	public static final String INSTRUCTION_PFLIPRESULT = "pflipresult";
 	public static final String INSTRUCTION_PFLIPROW = "pfliprow";
@@ -68,7 +80,6 @@ public class PuzzleHelperGUI extends JFrame implements WellPartitionPanel.WellPa
 	private JCheckBoxMenuItem autoUpdateCB;
 	
 	public PuzzleHelperGUI() {
-		
 		exportFileFilter = new FileNameExtensionFilter("XML", "xml");
 		imageFileFilter = new FileNameExtensionFilter("Image files", "tiff", "tif", "png", "bmp");
 		
@@ -140,7 +151,7 @@ public class PuzzleHelperGUI extends JFrame implements WellPartitionPanel.WellPa
 		button2.addActionListener(actionEvent -> previewPL.decrementFontSize());
 		exportInstructionFileButton.addActionListener(actionEvent -> {
 			try {
-				exportFile();
+				actionExportFile();
 			} catch (IOException e) {
 				e.printStackTrace();
 				JOptionPane.showMessageDialog(PuzzleHelperGUI.this, "Failed to save data to the file:\n" + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
@@ -150,7 +161,7 @@ public class PuzzleHelperGUI extends JFrame implements WellPartitionPanel.WellPa
 		importBT.addActionListener(actionEvent -> {
 			try {
 				actionImportFile();
-			} catch (IOException e) {
+			} catch (IOException | ParserConfigurationException e) {
 				e.printStackTrace();
 				JOptionPane.showMessageDialog(PuzzleHelperGUI.this, "Failed to read instruction file:\n" + e.getMessage(), CellomicsPuzzleHelper.NAME, JOptionPane.ERROR_MESSAGE);
 			}
@@ -171,7 +182,7 @@ public class PuzzleHelperGUI extends JFrame implements WellPartitionPanel.WellPa
 		desktop.browse(new URI(url));
 	}
 	
-	private void exportFile() throws IOException {
+	private void actionExportFile() throws IOException {
 		File f = chooseFile();
 		if (f == null) {
 			return;
@@ -188,7 +199,7 @@ public class PuzzleHelperGUI extends JFrame implements WellPartitionPanel.WellPa
 		if (f.exists()) {
 			int answer = JOptionPane.showConfirmDialog(this, "The file " + f.getName() + " already exists.\nDo you want to overwrite it?", CellomicsPuzzleHelper.NAME, JOptionPane.YES_NO_OPTION);
 			if (answer != JOptionPane.YES_OPTION) {
-				exportFile();
+				actionExportFile();
 				return;
 			}
 		} else {
@@ -214,7 +225,7 @@ public class PuzzleHelperGUI extends JFrame implements WellPartitionPanel.WellPa
 		BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(fout));
 		bw.write("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>");
 		bw.newLine();
-		bw.write("<WellType>");
+		bw.write("<" + INSTRUCTION_BASE_FILE + ">");
 		
 		ArrayList<String> args = new ArrayList<>();
 		args.addAll(map.keySet());
@@ -226,8 +237,57 @@ public class PuzzleHelperGUI extends JFrame implements WellPartitionPanel.WellPa
 		}
 		
 		bw.newLine();
-		bw.write("</WellType>");
+		printPartitionsAsXML(bw);
+		
+		bw.newLine();
+		bw.write("</" + INSTRUCTION_BASE_FILE + ">");
 		bw.close();
+	}
+	
+	public void printPartitionsAsXML(BufferedWriter bw) throws IOException {
+		bw.write("\t<" + INSTRUCTION_PARTITION + ">");
+		bw.newLine();
+		int partitionIndex = 0;
+		for (int i = 0; i < partitionsTabbedPane.getTabCount(); i++) {
+			Component c = partitionsTabbedPane.getComponentAt(i);
+			if (c instanceof WellPartitionPanel) {
+				WellPartitionPanel p = (WellPartitionPanel) c;
+				partitionIndex++;
+				ArrayList<WellPartitionPanel.WellRectangle> usedWellList = p.getUsedWells();
+				ArrayList<WellPartitionPanel.WellRectangle> controlWellList = p.getControlWells();
+				Collections.sort(usedWellList);
+				Collections.sort(controlWellList);
+				
+				bw.write("\t\t<p" + partitionIndex + ">");
+				bw.newLine();
+				
+				bw.write("\t\t\t<" + INSTRUCTION_PARTITION_USED + ">");
+				for (int j = 0; j < usedWellList.size(); j++) {
+					WellPartitionPanel.WellRectangle r = usedWellList.get(j);
+					if (j != 0) {
+						bw.write(";");
+					}
+					bw.write(r.getNameShort());
+				}
+				bw.write("</" + INSTRUCTION_PARTITION_USED + ">");
+				bw.newLine();
+				
+				bw.write("\t\t\t<" + INSTRUCTION_PARTITION_CONTROL + ">");
+				for (int j = 0; j < controlWellList.size(); j++) {
+					WellPartitionPanel.WellRectangle r = controlWellList.get(j);
+					if (j != 0) {
+						bw.write(";");
+					}
+					bw.write(r.getNameShort());
+				}
+				bw.write("</" + INSTRUCTION_PARTITION_CONTROL + ">");
+				bw.newLine();
+				
+				bw.write("\t\t</p" + partitionIndex + ">");
+				bw.newLine();
+			}
+		}
+		bw.write("\t</" + INSTRUCTION_PARTITION + ">");
 	}
 	
 	@Nullable
@@ -243,76 +303,96 @@ public class PuzzleHelperGUI extends JFrame implements WellPartitionPanel.WellPa
 		} else return null;
 	}
 	
-	private void actionImportFile() throws IOException {
+	private void actionImportFile() throws IOException, ParserConfigurationException {
 		JFileChooser chooser = new JFileChooser();
 		chooser.setDialogTitle("Select instruction file");
 		chooser.setFileFilter(exportFileFilter);
 		chooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
 		chooser.setApproveButtonText("Import");
-		int i = chooser.showOpenDialog(this);
+		int inputResult = chooser.showOpenDialog(this);
 		
-		if (i != JFileChooser.APPROVE_OPTION) return;
+		if (inputResult != JFileChooser.APPROVE_OPTION) return;
 		File f = chooser.getSelectedFile();
 		
-		ArrayList<String> XMLArgumentList = new ArrayList<>();
-		XMLArgumentList.add(INSTRUCTION_IMWIDTH);
-		XMLArgumentList.add(INSTRUCTION_IMHEIGHT);
-		XMLArgumentList.add(INSTRUCTION_PWIDTH);
-		XMLArgumentList.add(INSTRUCTION_PHEIGHT);
-		XMLArgumentList.add(INSTRUCTION_PDIR);
-		XMLArgumentList.add(INSTRUCTION_PFLIPROW);
-		XMLArgumentList.add(INSTRUCTION_PFLIPRESULT);
-		XMLArgumentList.add(INSTRUCTION_VERSION);
-		XMLArgumentList.add(INSTRUCTION_MAGNIFICATION);
-		XMLArgumentList.add(INSTRUCTION_MIRROR_COLUMN_TILING);
-		XMLArgumentList.add(INSTRUCTION_MIRROR_ROW_TILING);
-		HashMap<String, String> xmlMap = new HashMap<>();
+		DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory
+				.newInstance();
+		DocumentBuilder documentBuilder = documentBuilderFactory.newDocumentBuilder();
+		Document document;
+		try {
+			document = documentBuilder.parse(f);
+		} catch (SAXException e) {
+			e.printStackTrace();
+			JOptionPane.showMessageDialog(this, "The selected file is in the wrong format.");
+			return;
+		}
 		
-		BufferedReader br = new BufferedReader(new FileReader(f));
-		String line;
-		while ((line = br.readLine()) != null) {
-			line = line.trim();
-			ArrayList<String> temp = new ArrayList<>(XMLArgumentList);
-			for (String s : temp) {
-				String regex = "<" + s + ">(\\w+)</" + s + ">";
-				Matcher m = Pattern.compile(regex).matcher(line);
-				if (m.find()) {
-					System.out.println("Regex done: " + regex + " -> " + m.group(1));
-					xmlMap.put(s, m.group(1));
-					XMLArgumentList.remove(s);
-				}
+		if (document.getElementsByTagName(INSTRUCTION_VERSION).getLength() == 0) {
+			JOptionPane.showMessageDialog(this, "Failed to read the Version on this file. This could lead to unexpected behaviour.");
+		} else {
+			if (!document.getElementsByTagName(INSTRUCTION_VERSION).item(0).getTextContent().equals(CellomicsPuzzleHelper.VERSION)) {
+				JOptionPane.showMessageDialog(this, "The instruction file was created from a different version. This could lead to unexpected behaviour.");
 			}
 		}
 		
-		if (!xmlMap.containsKey(INSTRUCTION_VERSION)) {
-			xmlMap.put(INSTRUCTION_VERSION, String.valueOf(CellomicsPuzzleHelper.VERSION));
-			XMLArgumentList.remove(INSTRUCTION_VERSION);
-			JOptionPane.showMessageDialog(this, "Failed to read the Version on this file. This could lead to unexpected behaviour.");
-		}
-		
-		if (!XMLArgumentList.isEmpty()) {
-			JOptionPane.showMessageDialog(this, "Not enough instruction lines. This may lead to unexpected behaviour! Missing expected lines:\n" + Arrays.toString(XMLArgumentList.toArray()));
-		}
-		
-		if (!xmlMap.get(INSTRUCTION_VERSION).equals(CellomicsPuzzleHelper.VERSION)) {
-			JOptionPane.showMessageDialog(this, "The instruction file was created from a different version. This could lead to unexpected behaviour.");
-		}
-		
 		try {
-			imWidthSP.setValue(Integer.valueOf(xmlMap.get(INSTRUCTION_IMWIDTH)));
-			imHeightSP.setValue(Integer.valueOf(xmlMap.get(INSTRUCTION_IMHEIGHT)));
-			pWidthSP.setValue(Integer.valueOf(xmlMap.get(INSTRUCTION_PWIDTH)));
-			magnificationSP.setValue(Integer.valueOf(xmlMap.get(INSTRUCTION_MAGNIFICATION)));
-			pHeightSP.setValue(Integer.valueOf(xmlMap.get(INSTRUCTION_PHEIGHT)));
-			flipFinalImageCB.setSelected(Boolean.valueOf(xmlMap.get(INSTRUCTION_PFLIPRESULT)));
-			flipRowCB.setSelected(Boolean.valueOf(xmlMap.get(INSTRUCTION_PFLIPROW)));
-			mirrorColumnTilingCB.setSelected(Boolean.valueOf(xmlMap.get(INSTRUCTION_MIRROR_ROW_TILING)));
-			mirrorRowTilingCB.setSelected(Boolean.valueOf(xmlMap.get(INSTRUCTION_MIRROR_COLUMN_TILING)));
-			directionCB.setSelectedItem(PuzzleDirection.valueOf(xmlMap.get(INSTRUCTION_PDIR)));
+			imWidthSP.setValue(Integer.valueOf(document.getElementsByTagName(INSTRUCTION_IMWIDTH).item(0).getTextContent()));
+			imHeightSP.setValue(Integer.valueOf(document.getElementsByTagName(INSTRUCTION_IMHEIGHT).item(0).getTextContent()));
+			pWidthSP.setValue(Integer.valueOf(document.getElementsByTagName(INSTRUCTION_PWIDTH).item(0).getTextContent()));
+			magnificationSP.setValue(Integer.valueOf(document.getElementsByTagName(INSTRUCTION_MAGNIFICATION).item(0).getTextContent()));
+			pHeightSP.setValue(Integer.valueOf(document.getElementsByTagName(INSTRUCTION_PHEIGHT).item(0).getTextContent()));
+			flipFinalImageCB.setSelected(Boolean.valueOf(document.getElementsByTagName(INSTRUCTION_PFLIPRESULT).item(0).getTextContent()));
+			flipRowCB.setSelected(Boolean.valueOf(document.getElementsByTagName(INSTRUCTION_PFLIPROW).item(0).getTextContent()));
+			mirrorColumnTilingCB.setSelected(Boolean.valueOf(document.getElementsByTagName(INSTRUCTION_MIRROR_ROW_TILING).item(0).getTextContent()));
+			mirrorRowTilingCB.setSelected(Boolean.valueOf(document.getElementsByTagName(INSTRUCTION_MIRROR_COLUMN_TILING).item(0).getTextContent()));
+			directionCB.setSelectedItem(PuzzleDirection.getViaString(document.getElementsByTagName(INSTRUCTION_PDIR).item(0).getTextContent()));
 		} catch (Exception e) {
 			e.printStackTrace();
 			JOptionPane.showMessageDialog(this, "The file did not contain every smart well parameter required by this version and importing stopped. This may lead to unexpected behaviour.", "Error!", JOptionPane.ERROR_MESSAGE);
 			return;
+		}
+		
+		// Reading well partitions
+		ArrayList<String> usedWellList = new ArrayList<>();
+		ArrayList<String> controlWellList = new ArrayList<>();
+		if (document.getElementsByTagName(INSTRUCTION_PARTITION).getLength() == 0) {
+			JOptionPane.showMessageDialog(this, "This file has no information about well partitions.");
+		} else {
+			Element el = (Element) (document.getElementsByTagName(INSTRUCTION_PARTITION).item(0));
+			NodeList children = el.getChildNodes();
+			
+			int partitionCount = 0;
+			for (int i = 0; i < children.getLength(); i++) {
+				System.out.println("Children: " + i);
+				Node currentNode = children.item(i);
+				String name = currentNode.getNodeName();
+				if (name.startsWith("p")) {
+					NodeList wellLists = currentNode.getChildNodes();
+					if (wellLists instanceof Element) {
+						partitionCount++;
+						System.out.println("Found a partition list with node name '" + currentNode.getNodeName() + "' at index " + partitionCount);
+						Element e = (Element) wellLists;
+						String usedWells = e.getElementsByTagName("UsedWells").item(0).getTextContent();
+						String controlWells = e.getElementsByTagName("ControlWells").item(0).getTextContent();
+						System.out.println("Used wells: " + usedWells);
+						System.out.println("Control wells: " + controlWells);
+						
+						usedWellList.add(usedWells);
+						controlWellList.add(controlWells);
+					}
+				}
+			}
+			
+			// Applying the read well lists
+			partitionsSP.setValue(partitionCount);
+			updateWellPartitionTabs();
+			for (int i = 0; i < partitionCount; i++) {
+				Component c = partitionsTabbedPane.getComponentAt(i);
+				if (c instanceof WellPartitionPanel) {
+					WellPartitionPanel p = (WellPartitionPanel) c;
+					p.importWellListsXML(usedWellList.get(i),controlWellList.get(i));
+				}
+			}
+			updateWellPartitionTabs();
 		}
 		
 		update();
@@ -419,7 +499,7 @@ public class PuzzleHelperGUI extends JFrame implements WellPartitionPanel.WellPa
 				WellPartitionPanel p = (WellPartitionPanel) c;
 				int wellCount = p.getUsedWellCount();
 				int controlCount = p.getControlCount();
-				partitionsTabbedPane.setTitleAt(i, "Partition " + (i+1) + " [" + wellCount + ";" + controlCount + "]");
+				partitionsTabbedPane.setTitleAt(i, "Partition " + (i + 1) + " [" + wellCount + ";" + controlCount + "]");
 			}
 		}
 	}

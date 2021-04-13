@@ -1,5 +1,7 @@
 package de.rub.bph.ui.component;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.awt.*;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
@@ -7,6 +9,7 @@ import java.awt.event.MouseMotionListener;
 import java.awt.font.FontRenderContext;
 import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
+import java.util.Arrays;
 
 public class WellPartitionPanel extends Panel implements MouseListener, MouseMotionListener {
 	
@@ -86,6 +89,26 @@ public class WellPartitionPanel extends Panel implements MouseListener, MouseMot
 		listeners.clear();
 	}
 	
+	public void importWellListsXML(String usedWells, String controlWells) {
+		ArrayList<String> usedWellList = new ArrayList<>(Arrays.asList(usedWells.split(";")));
+		ArrayList<String> controlWellList = new ArrayList<>(Arrays.asList(controlWells.split(";")));
+		
+		for (WellRectangle r : rectList) {
+			String currentWell = r.getNameShort();
+			r.setState(0);
+			
+			if (usedWellList.contains(currentWell)) {
+				r.setState(1);
+			}
+			if (controlWellList.contains(currentWell)) {
+				r.setState(2);
+			}
+		}
+		
+		update();
+		notifyListeners();
+	}
+	
 	@Override
 	public void mouseDragged(MouseEvent mouseEvent) {
 		selectEndPoint = mouseEvent.getPoint();
@@ -103,7 +126,7 @@ public class WellPartitionPanel extends Panel implements MouseListener, MouseMot
 		Point p = mouseEvent.getPoint();
 		for (WellRectangle rectangle : rectList) {
 			if (rectangle.contains(p)) {
-				System.out.println("Click in " + rectangle.getName());
+				System.out.println("Click in " + rectangle.getNameLong());
 				rectangle.onClick(mouseEvent);
 			}
 		}
@@ -181,7 +204,7 @@ public class WellPartitionPanel extends Panel implements MouseListener, MouseMot
 		x = centerX - circleRadius / 2;
 		y = centerY - circleRadius / 2;
 		
-		String wellText = rectangle.getName();
+		String wellText = rectangle.getNameLong();
 		Graphics2D g2 = (Graphics2D) g;
 		Stroke s = g2.getStroke();
 		
@@ -191,7 +214,7 @@ public class WellPartitionPanel extends Panel implements MouseListener, MouseMot
 				g.setColor(Color.RED);
 				break;
 			case 2:
-				g.setColor(Color.BLUE);
+				g.setColor(Color.CYAN);
 				break;
 		}
 		g.fillOval(x, y, circleRadius, circleRadius);
@@ -206,8 +229,8 @@ public class WellPartitionPanel extends Panel implements MouseListener, MouseMot
 		FontRenderContext frc = g2.getFontRenderContext();
 		Rectangle2D textBound = g.getFont().getStringBounds(wellText, frc);
 		
-		int textX = (int) (centerX - textBound.getWidth()/2);
-		int textY = (int) (centerY + textBound.getHeight()/2);
+		int textX = (int) (centerX - textBound.getWidth() / 2);
+		int textY = (int) (centerY + textBound.getHeight() / 2);
 		g.drawString(wellText, textX, textY);
 	}
 	
@@ -264,28 +287,36 @@ public class WellPartitionPanel extends Panel implements MouseListener, MouseMot
 	}
 	
 	public int getControlCount() {
-		int count = 0;
+		return getControlWells().size();
+	}
+	
+	public ArrayList<WellRectangle> getControlWells() {
+		ArrayList<WellRectangle> list = new ArrayList<>();
 		for (WellRectangle rectangle : rectList) {
 			if (rectangle.getState() >= 2) {
-				count++;
+				list.add(rectangle);
 			}
 		}
-		return count;
+		return list;
 	}
 	
 	public int getUsedWellCount() {
-		int count = 0;
-		for (WellRectangle rectangle : rectList) {
-			if (rectangle.getState() >= 1) {
-				count++;
-			}
-		}
-		return count;
+		return getUsedWells().size();
 	}
 	
-	public static class WellRectangle extends Rectangle {
+	public ArrayList<WellRectangle> getUsedWells() {
+		ArrayList<WellRectangle> list = new ArrayList<>();
+		for (WellRectangle rectangle : rectList) {
+			if (rectangle.getState() >= 1) {
+				list.add(rectangle);
+			}
+		}
+		return list;
+	}
+	
+	public static class WellRectangle extends Rectangle implements Comparable<WellRectangle> {
 		
-		private final String name;
+		private final String nameLong, nameShort;
 		private int state;
 		private int wellX;
 		private int wellY;
@@ -298,10 +329,11 @@ public class WellPartitionPanel extends Panel implements MouseListener, MouseMot
 			highlighted = false;
 			
 			String wellChar = String.valueOf((char) (65 + wellY));
+			nameShort = wellChar + (wellX + 1);
 			if (wellX < 9) {
 				wellChar = wellChar + "0";
 			}
-			name = wellChar + (wellX + 1);
+			nameLong = wellChar + (wellX + 1);
 		}
 		
 		public void onClick(MouseEvent event) {
@@ -321,8 +353,17 @@ public class WellPartitionPanel extends Panel implements MouseListener, MouseMot
 			this.state = state;
 		}
 		
-		public String getName() {
-			return name;
+		@Override
+		public int compareTo(@NotNull WellPartitionPanel.WellRectangle rectangle) {
+			return getNameLong().compareTo(rectangle.getNameLong());
+		}
+		
+		public String getNameLong() {
+			return nameLong;
+		}
+		
+		public String getNameShort() {
+			return nameShort;
 		}
 		
 		public int getWellX() {
