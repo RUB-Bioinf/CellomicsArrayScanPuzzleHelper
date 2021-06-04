@@ -29,6 +29,7 @@ public class Puzzler {
 	
 	public void puzzle() {
 		System.out.println("Puzzling a new structure: " + getW() + "x" + getH());
+		System.out.println("Mirror rows: "+isMirrorRowTiling()+". Mirror cols: "+mirrorColumnTiling);
 		
 		PuzzleDirection currentDirection = direction;
 		PuzzleDirection startDirection = direction;
@@ -37,8 +38,9 @@ public class Puzzler {
 		int y = getH() - 1;
 		
 		for (int i = 0; i <= getSize(); i++) {
-			visitedMap.put(i, transformPosition(x, y));
-			System.out.println("Map: " + i + " -> " + x + "x" + y + " - " + currentDirection);
+			Point p = transformPosition(x,y);
+			visitedMap.put(i, p);
+			System.out.println("Map: " + i + " -> " + p.x + "x" + p.y + " - " + currentDirection);
 			
 			switch (currentDirection) {
 				case RIGHT:
@@ -110,10 +112,10 @@ public class Puzzler {
 	}
 	
 	private Point transformPosition(int x, int y) {
-		if (isMirrorRowTiling()) {
+		if (isMirrorColumnTiling()) {
 			x = getW() - x;
 		}
-		if (isMirrorColumnTiling()) {
+		if (isMirrorRowTiling()) {
 			y = getH() - y;
 		}
 		return new Point(x, y);

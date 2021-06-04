@@ -20,9 +20,11 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import java.awt.*;
+import java.awt.event.ActionListener;
 import java.io.*;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -76,6 +78,7 @@ public class PuzzleHelperGUI extends JFrame implements WellPartitionPanel.WellPa
 	private JCheckBox highlightPuzzleCB;
 	private JTabbedPane partitionsTabbedPane;
 	private JSpinner partitionsSP;
+	private JLabel magnificationLB;
 	
 	private JCheckBoxMenuItem autoUpdateCB;
 	
@@ -83,7 +86,7 @@ public class PuzzleHelperGUI extends JFrame implements WellPartitionPanel.WellPa
 		exportFileFilter = new FileNameExtensionFilter("XML", "xml");
 		imageFileFilter = new FileNameExtensionFilter("Image files", "tiff", "tif", "png", "bmp");
 		
-		magnificationSP.setModel(new SpinnerNumberModel(10, 1, Integer.MAX_VALUE, 1));
+		magnificationSP.setModel(new SpinnerNumberModel(1, 0, Integer.MAX_VALUE, 0.001));
 		pWidthSP.setModel(new SpinnerNumberModel(10, 1, Integer.MAX_VALUE, 1));
 		pHeightSP.setModel(new SpinnerNumberModel(10, 1, Integer.MAX_VALUE, 1));
 		imWidthSP.setModel(new SpinnerNumberModel(1000, 1, Integer.MAX_VALUE, 1));
@@ -96,6 +99,7 @@ public class PuzzleHelperGUI extends JFrame implements WellPartitionPanel.WellPa
 		imWidthSP.addChangeListener(l);
 		imHeightSP.addChangeListener(l);
 		partitionsSP.addChangeListener(changeEvent -> update());
+		magnificationSP.addChangeListener(changeEvent -> update());
 		
 		directionCB.addItem(PuzzleDirection.RIGHT);
 		directionCB.addItem(PuzzleDirection.DOWN);
@@ -218,7 +222,7 @@ public class PuzzleHelperGUI extends JFrame implements WellPartitionPanel.WellPa
 		map.put(INSTRUCTION_MIRROR_ROW_TILING, String.valueOf(mirrorRowTilingCB.isSelected()));
 		map.put(INSTRUCTION_PFLIPROW, String.valueOf(flipRowCB.isSelected()));
 		map.put(INSTRUCTION_PFLIPRESULT, String.valueOf(flipFinalImageCB.isSelected()));
-		map.put(INSTRUCTION_MAGNIFICATION, String.valueOf(magnificationSP.getValue()));
+		map.put(INSTRUCTION_MAGNIFICATION, String.valueOf(getMagnification()));
 		map.put(INSTRUCTION_VERSION, CellomicsPuzzleHelper.VERSION);
 		
 		FileOutputStream fout = new FileOutputStream(f);
@@ -338,7 +342,7 @@ public class PuzzleHelperGUI extends JFrame implements WellPartitionPanel.WellPa
 			imWidthSP.setValue(Integer.valueOf(document.getElementsByTagName(INSTRUCTION_IMWIDTH).item(0).getTextContent()));
 			imHeightSP.setValue(Integer.valueOf(document.getElementsByTagName(INSTRUCTION_IMHEIGHT).item(0).getTextContent()));
 			pWidthSP.setValue(Integer.valueOf(document.getElementsByTagName(INSTRUCTION_PWIDTH).item(0).getTextContent()));
-			magnificationSP.setValue(Integer.valueOf(document.getElementsByTagName(INSTRUCTION_MAGNIFICATION).item(0).getTextContent()));
+			magnificationSP.setValue(Double.valueOf(document.getElementsByTagName(INSTRUCTION_MAGNIFICATION).item(0).getTextContent()));
 			pHeightSP.setValue(Integer.valueOf(document.getElementsByTagName(INSTRUCTION_PHEIGHT).item(0).getTextContent()));
 			flipFinalImageCB.setSelected(Boolean.valueOf(document.getElementsByTagName(INSTRUCTION_PFLIPRESULT).item(0).getTextContent()));
 			flipRowCB.setSelected(Boolean.valueOf(document.getElementsByTagName(INSTRUCTION_PFLIPROW).item(0).getTextContent()));
@@ -457,6 +461,9 @@ public class PuzzleHelperGUI extends JFrame implements WellPartitionPanel.WellPa
 		previewPL.update(w, h, mirrorRowTiling, mirrorColumnTiling, highlightPuzzle, direction);
 		imagecountLB.setText("Image count per well: " + w * h + " [" + w + "x" + h + "]");
 		
+		double magnification = getMagnification();
+		magnificationLB.setText("Scaling factor: 1 px represents "+magnification+" \u00B5");
+		
 		updateWellPartitionTabs();
 	}
 	
@@ -484,6 +491,13 @@ public class PuzzleHelperGUI extends JFrame implements WellPartitionPanel.WellPa
 		repaint();
 		partitionsTabbedPane.invalidate();
 		partitionsTabbedPane.repaint();
+	}
+	
+	public double getMagnification(){
+		DecimalFormat df = new DecimalFormat("#.###");
+		double magnification = (double) magnificationSP.getValue();
+		String formattedMagnification = df.format(magnification);
+		return Double.parseDouble(formattedMagnification);
 	}
 	
 	@Override

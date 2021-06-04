@@ -137,10 +137,10 @@ public class WellPreviewPanel extends JPanel {
 				
 				int px = i;
 				int py = j;
-				if (mirrorRowTiling) {
+				if (mirrorColumnTiling) {
 					px = getW() - i - 1;
 				}
-				if (mirrorColumnTiling) {
+				if (mirrorRowTiling) {
 					py = getH() - j - 1;
 				}
 				
@@ -169,10 +169,10 @@ public class WellPreviewPanel extends JPanel {
 				
 				int x = i;
 				int y = j;
-				if (mirrorRowTiling) {
+				if (mirrorColumnTiling) {
 					x = getW() - i - 1;
 				}
-				if (mirrorColumnTiling) {
+				if (mirrorRowTiling) {
 					y = getH() - j - 1;
 				}
 				
