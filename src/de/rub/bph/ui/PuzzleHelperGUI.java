@@ -21,6 +21,8 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import java.awt.*;
 import java.awt.event.ActionListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.io.*;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -79,6 +81,7 @@ public class PuzzleHelperGUI extends JFrame implements WellPartitionPanel.WellPa
 	private JTabbedPane partitionsTabbedPane;
 	private JSpinner partitionsSP;
 	private JLabel magnificationLB;
+	private JLabel partitionsWarningLB;
 	
 	private JCheckBoxMenuItem autoUpdateCB;
 	
@@ -86,7 +89,7 @@ public class PuzzleHelperGUI extends JFrame implements WellPartitionPanel.WellPa
 		exportFileFilter = new FileNameExtensionFilter("XML", "xml");
 		imageFileFilter = new FileNameExtensionFilter("Image files", "tiff", "tif", "png", "bmp");
 		
-		magnificationSP.setModel(new SpinnerNumberModel(1, 0, Integer.MAX_VALUE, 0.001));
+		magnificationSP.setModel(new SpinnerNumberModel(1, Integer.MIN_VALUE, Integer.MAX_VALUE, 0.001));
 		pWidthSP.setModel(new SpinnerNumberModel(10, 1, Integer.MAX_VALUE, 1));
 		pHeightSP.setModel(new SpinnerNumberModel(10, 1, Integer.MAX_VALUE, 1));
 		imWidthSP.setModel(new SpinnerNumberModel(1000, 1, Integer.MAX_VALUE, 1));
@@ -168,6 +171,34 @@ public class PuzzleHelperGUI extends JFrame implements WellPartitionPanel.WellPa
 			} catch (IOException | ParserConfigurationException e) {
 				e.printStackTrace();
 				JOptionPane.showMessageDialog(PuzzleHelperGUI.this, "Failed to read instruction file:\n" + e.getMessage(), CellomicsPuzzleHelper.NAME, JOptionPane.ERROR_MESSAGE);
+			}
+		});
+		
+		exportInstructionFileButton.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseEntered(MouseEvent e) {
+				super.mouseEntered(e);
+				update();
+				
+				Font f = partitionsWarningLB.getFont();
+				f=f.deriveFont(f.getStyle() | Font.BOLD);
+				partitionsWarningLB.setForeground(Color.RED);
+				partitionsWarningLB.setFont(f);
+				
+				if(partitionsWarningLB.isVisible()){
+					Toolkit.getDefaultToolkit().beep();
+				}
+			}
+			
+			@Override
+			public void mouseExited(MouseEvent e) {
+				super.mouseExited(e);
+				update();
+				
+				Font f = partitionsWarningLB.getFont();
+				f=f.deriveFont(f.getStyle() & ~Font.BOLD);
+				partitionsWarningLB.setForeground(Color.BLACK);
+				partitionsWarningLB.setFont(f);
 			}
 		});
 		
@@ -462,9 +493,10 @@ public class PuzzleHelperGUI extends JFrame implements WellPartitionPanel.WellPa
 		imagecountLB.setText("Image count per well: " + w * h + " [" + w + "x" + h + "]");
 		
 		double magnification = getMagnification();
-		magnificationLB.setText("Scaling factor: 1 px represents "+magnification+" \u00B5");
+		magnificationLB.setText("Scaling factor: 1 px represents "+magnification+" \u00B5m");
 		
 		updateWellPartitionTabs();
+		partitionsWarningLB.setVisible(!hasWellPartitionsWithAtLeastOneControl());
 	}
 	
 	private void updateWellPartitionTabs() {
@@ -493,6 +525,18 @@ public class PuzzleHelperGUI extends JFrame implements WellPartitionPanel.WellPa
 		partitionsTabbedPane.repaint();
 	}
 	
+	public boolean hasWellPartitionsWithAtLeastOneControl(){
+		for (int i = 0; i < partitionsTabbedPane.getTabCount(); i++) {
+			Component c = partitionsTabbedPane.getComponentAt(i);
+			if (c instanceof WellPartitionPanel) {
+				WellPartitionPanel p = (WellPartitionPanel) c;
+				int controlCount = p.getControlCount();
+				if (controlCount == 0) return false;
+			}
+		}
+		return true;
+	}
+	
 	public double getMagnification(){
 		DecimalFormat df = new DecimalFormat("#.###");
 		double magnification = (double) magnificationSP.getValue();
@@ -516,5 +560,7 @@ public class PuzzleHelperGUI extends JFrame implements WellPartitionPanel.WellPa
 				partitionsTabbedPane.setTitleAt(i, "Partition " + (i + 1) + " [" + wellCount + ";" + controlCount + "]");
 			}
 		}
+		
+		update();
 	}
 }
