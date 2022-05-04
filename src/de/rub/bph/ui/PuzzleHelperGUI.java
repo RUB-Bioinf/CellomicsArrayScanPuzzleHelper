@@ -15,6 +15,8 @@ import org.xml.sax.SAXException;
 
 import javax.swing.*;
 import javax.swing.event.ChangeListener;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -72,7 +74,6 @@ public class PuzzleHelperGUI extends JFrame implements WellPartitionPanel.WellPa
 	private JButton autoReadImageSizesButton;
 	private JCheckBox flipFinalImageCB;
 	private JButton importBT;
-	private JSpinner magnificationSP;
 	private JCheckBox mirrorRowTilingCB;
 	private JCheckBox mirrorColumnTilingCB;
 	private JCheckBox highlightPuzzleCB;
@@ -81,6 +82,7 @@ public class PuzzleHelperGUI extends JFrame implements WellPartitionPanel.WellPa
 	private JLabel magnificationLB;
 	private JLabel partitionsWarningLB;
 	private JTextField separatorTF;
+	private JTextField magnificationTF;
 	
 	private JCheckBoxMenuItem autoUpdateCB;
 	
@@ -102,7 +104,6 @@ public class PuzzleHelperGUI extends JFrame implements WellPartitionPanel.WellPa
 			}
 		};
 		
-		magnificationSP.setModel(new SpinnerNumberModel(1.0, -100.0, 100.0, 0.001));
 		pWidthSP.setModel(new SpinnerNumberModel(10, 1, Integer.MAX_VALUE, 1));
 		pHeightSP.setModel(new SpinnerNumberModel(10, 1, Integer.MAX_VALUE, 1));
 		imWidthSP.setModel(new SpinnerNumberModel(1000, 1, Integer.MAX_VALUE, 1));
@@ -115,9 +116,23 @@ public class PuzzleHelperGUI extends JFrame implements WellPartitionPanel.WellPa
 		imWidthSP.addChangeListener(l);
 		imHeightSP.addChangeListener(l);
 		partitionsSP.addChangeListener(changeEvent -> update());
-		magnificationSP.addChangeListener(changeEvent -> update());
-		magnificationSP.addMouseListener(mouseListenerUpdate);
 		exportInstructionFileButton.addMouseListener(mouseListenerUpdate);
+		magnificationTF.getDocument().addDocumentListener(new DocumentListener() {
+			@Override
+			public void insertUpdate(DocumentEvent documentEvent) {
+				update();
+			}
+			
+			@Override
+			public void removeUpdate(DocumentEvent documentEvent) {
+				update();
+			}
+			
+			@Override
+			public void changedUpdate(DocumentEvent documentEvent) {
+				update();
+			}
+		});
 		
 		directionCB.addItem(PuzzleDirection.RIGHT);
 		directionCB.addItem(PuzzleDirection.DOWN);
@@ -258,6 +273,13 @@ public class PuzzleHelperGUI extends JFrame implements WellPartitionPanel.WellPa
 		
 		if (!exportFileFilter.accept(f)) return;
 		
+		double magnification = 0;
+		try {
+			magnification = getMagnification();
+		}catch (Exception e){
+			JOptionPane.showMessageDialog(this,"Cannot save the puzzle instructions:\nInvalid magnification!","Fatal Error!",JOptionPane.ERROR_MESSAGE);
+		}
+		
 		HashMap<String, String> map = new HashMap<String, String>();
 		map.put(INSTRUCTION_IMWIDTH, String.valueOf(imWidthSP.getValue()));
 		map.put(INSTRUCTION_IMHEIGHT, String.valueOf(imHeightSP.getValue()));
@@ -268,7 +290,7 @@ public class PuzzleHelperGUI extends JFrame implements WellPartitionPanel.WellPa
 		map.put(INSTRUCTION_MIRROR_ROW_TILING, String.valueOf(mirrorRowTilingCB.isSelected()));
 		map.put(INSTRUCTION_PFLIPROW, String.valueOf(flipRowCB.isSelected()));
 		map.put(INSTRUCTION_PFLIPRESULT, String.valueOf(flipFinalImageCB.isSelected()));
-		map.put(INSTRUCTION_MAGNIFICATION, String.valueOf(getMagnification()));
+		map.put(INSTRUCTION_MAGNIFICATION, String.valueOf(magnification));
 		map.put(INSTRUCTION_SEPARATOR, String.valueOf(separatorTF.getText()));
 		map.put(INSTRUCTION_VERSION, CellomicsPuzzleHelper.VERSION);
 		
@@ -389,7 +411,7 @@ public class PuzzleHelperGUI extends JFrame implements WellPartitionPanel.WellPa
 			imWidthSP.setValue(Integer.valueOf(document.getElementsByTagName(INSTRUCTION_IMWIDTH).item(0).getTextContent()));
 			imHeightSP.setValue(Integer.valueOf(document.getElementsByTagName(INSTRUCTION_IMHEIGHT).item(0).getTextContent()));
 			pWidthSP.setValue(Integer.valueOf(document.getElementsByTagName(INSTRUCTION_PWIDTH).item(0).getTextContent()));
-			magnificationSP.setValue(Double.valueOf(document.getElementsByTagName(INSTRUCTION_MAGNIFICATION).item(0).getTextContent()));
+			magnificationTF.setText(String.valueOf(document.getElementsByTagName(INSTRUCTION_MAGNIFICATION).item(0).getTextContent()));
 			pHeightSP.setValue(Integer.valueOf(document.getElementsByTagName(INSTRUCTION_PHEIGHT).item(0).getTextContent()));
 			separatorTF.setText(String.valueOf(document.getElementsByTagName(INSTRUCTION_SEPARATOR).item(0).getTextContent()));
 			flipFinalImageCB.setSelected(Boolean.valueOf(document.getElementsByTagName(INSTRUCTION_PFLIPRESULT).item(0).getTextContent()));
@@ -399,7 +421,16 @@ public class PuzzleHelperGUI extends JFrame implements WellPartitionPanel.WellPa
 			directionCB.setSelectedItem(PuzzleDirection.getViaString(document.getElementsByTagName(INSTRUCTION_PDIR).item(0).getTextContent()));
 		} catch (Exception e) {
 			e.printStackTrace();
-			JOptionPane.showMessageDialog(this, "The file did not contain every smart well parameter required by this version and importing stopped. This may lead to unexpected behaviour.", "Error!", JOptionPane.ERROR_MESSAGE);
+			StringBuilder builder = new StringBuilder();
+			for (StackTraceElement element : e.getStackTrace()){
+				builder.append("\n"+element);
+			}
+			String className = e.getClass().getName();
+			
+			int answer = JOptionPane.showConfirmDialog(this, "The file did not contain every smart well parameter required by this version and importing stopped. This may lead to unexpected behaviour.\nException: "+className+": '"+e.getMessage()+"'\nDo you want to see a detailed error report?", "Error!",JOptionPane.YES_NO_OPTION, JOptionPane.ERROR_MESSAGE);
+			if (answer==JOptionPane.YES_OPTION){
+				JOptionPane.showMessageDialog(this,e.getMessage()+"\n"+builder.toString(),className,JOptionPane.ERROR_MESSAGE);
+			}
 			return;
 		}
 		
@@ -514,8 +545,14 @@ public class PuzzleHelperGUI extends JFrame implements WellPartitionPanel.WellPa
 		previewPL.update(w, h, mirrorRowTiling, mirrorColumnTiling, highlightPuzzle, direction);
 		imagecountLB.setText("Image count per well: " + w * h + " [" + w + "x" + h + "]");
 		
-		double magnification = getMagnification();
-		magnificationLB.setText("Scaling factor: 1 px represents "+magnification+" \u00B5m");
+		String magnificationText = "INVALID NUMBER!";
+		try{
+			double magnification = getMagnification();
+			magnificationText="1 px represents "+magnification+" \u00B5m";
+		}catch (Exception e){
+			e.printStackTrace();
+		}
+		magnificationLB.setText("Scaling factor: "+magnificationText);
 		
 		updateWellPartitionTabs();
 		partitionsWarningLB.setVisible(!hasWellPartitionsWithAtLeastOneControl());
@@ -559,26 +596,15 @@ public class PuzzleHelperGUI extends JFrame implements WellPartitionPanel.WellPa
 		return true;
 	}
 	
-	public double getMagnification(){
+	public double getMagnification() throws NumberFormatException{
 		DecimalFormat format = (DecimalFormat) DecimalFormat.getInstance();
 		DecimalFormatSymbols symbols = format.getDecimalFormatSymbols();
 		char sep=symbols.getDecimalSeparator();
 		DecimalFormat df = new DecimalFormat("#.###");
 		
-		double magnification;
-		// So, there is a bug within Java to round the double spinner value to the nearest integer using "getValue()"
-		// That's why we gotta read the spinner text. Great.
-		JSpinner.NumberEditor numEditor = (JSpinner.NumberEditor) magnificationSP.getEditor();
-		JFormattedTextField textField = numEditor.getTextField();
-		JFormattedTextField.AbstractFormatter formatter = textField.getFormatter();
-		String text = textField.getText();
-		if (sep==','){
-			// Turns out we are on a German Locale. That means we gotta read the text field directly.
-			text = text.replace(",",".");
-			magnification = Double.parseDouble(text);
-		}else{
-			magnification=(double) magnificationSP.getValue();
-		}
+		String inputMag = magnificationTF.getText();
+		inputMag=inputMag.replace(",",".").trim().toLowerCase();
+		double magnification = Double.parseDouble(inputMag);
 		
 		String formattedMagnification = df.format(magnification);
 		formattedMagnification=formattedMagnification.replace(",",".");
